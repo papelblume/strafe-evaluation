@@ -4,7 +4,7 @@
 
 <img src="https://raw.githubusercontent.com/patrikzudel/strafe-evaluation/main/preview.png?sanitize=true#gh-dark-mode-only" alt="Logo">
 
-⭐️ Star the repo if you like it!
+⭐️ Star the repo if you like it! 
 
   ## 📖 How to use
 
