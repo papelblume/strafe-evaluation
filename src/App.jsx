@@ -4,33 +4,45 @@ import { Chart, registerables } from 'chart.js'
 import { Bar } from 'solid-chartjs'
 import { listen } from '@tauri-apps/api/event'
 
-// Chart hex colors — Chart.js cannot resolve CSS variables, so hardcoded per mode
-const CHART_COLORS = {
-  dark:  { early: "#4a7040", late: "#3a7068", perfect: "#6b6040" },
-  light: { early: "#a5c5ae", late: "#8cb5a8", perfect: "#b5ac8c" },
+const COLORS = {
+  dark: {
+    bg:         "#181a18",
+    panel:      "#1f2d1e",
+    accent:     "#1a3028",
+    primary:    "#4a7040",
+    text:       "#d0dccb",
+    textStroke: "#d0dccb",
+    chartEarly:   "#4a7040",
+    chartLate:    "#3a7068",
+    chartPerfect: "#6b6040",
+    perfect:    "#6b6040",
+  },
+  light: {
+    bg:         "#f4f4f4",
+    panel:      "#a5c5ae",
+    accent:     "#8cb5a8",
+    primary:    "#88a56f",
+    text:       "#3a3f36",
+    textStroke: "#3a3f36",
+    chartEarly:   "#a5c5ae",
+    chartLate:    "#8cb5a8",
+    chartPerfect: "#b5ac8c",
+    perfect:    "#b5ac8c",
+  },
 }
-
-// Perfect button/hex color for inline styles
-const PERFECT_HEX = { dark: "#6b6040", light: "#b5ac8c" }
 
 function draw_time(time) {
   return (time / 1000).toFixed(0) + " ms"
 }
 
 function getMeanAndVar(arr) {
-  var sum = arr.reduce(function (pre, cur) {
-    return pre + cur;
-  })
+  var sum = arr.reduce(function (pre, cur) { return pre + cur; })
   let num = arr.length
   var average = sum / num;
-
   let variance = 0;
-  arr.forEach(num => {
-    variance += ((num - average) * (num - average));
-  });
+  arr.forEach(num => { variance += ((num - average) * (num - average)); });
   variance /= num;
   variance = Math.sqrt(variance)
-
   return { average: average, std_deviation: variance }
 }
 
@@ -40,21 +52,16 @@ function getStats(duration_array) {
   }
   const sorted = Array.from(duration_array).sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
-
   let median;
   if (sorted.length % 2 === 0) {
     median = (sorted[middle - 1] + sorted[middle]) / 2;
-  }
-  else median = sorted[middle]
-
+  } else median = sorted[middle]
   let o = getMeanAndVar(duration_array)
-  return { median: median, min: sorted[0], max: sorted[sorted.length - 1], average: o.average, std_deviation: o.std_deviation, samples: duration_array.length }
+  return { median, min: sorted[0], max: sorted[sorted.length - 1], average: o.average, std_deviation: o.std_deviation, samples: duration_array.length }
 }
 
 function getOccurance(duration_array) {
-  if (!duration_array || duration_array.length == 0) {
-    return [0]
-  }
+  if (!duration_array || duration_array.length == 0) return [0]
   let out = new Array(41).fill(0);
   duration_array.map((x) => {
     let n = Math.ceil(x / 5000)
@@ -66,60 +73,37 @@ function getOccurance(duration_array) {
 const MyChart = (props) => {
   const labels = Array.from({ length: 201 / 5 + 1 }, (_, i) => i * 5);
 
-  const getChartData = (earlyStrafes, lateStrafes, perfectStrafes, isDark) => {
-    const mode = isDark ? "dark" : "light";
-    const c = CHART_COLORS[mode];
-    return {
-      labels: labels,
-      datasets: [
-        { label: 'Early',   data: getOccurance(earlyStrafes),  borderRadius: 5, backgroundColor: c.early },
-        { label: 'Late',    data: getOccurance(lateStrafes),   borderRadius: 5, backgroundColor: c.late },
-        { label: 'Perfect', data: [perfectStrafes.length],     borderRadius: 5, backgroundColor: c.perfect },
-      ],
-    }
-  }
-
-  const getChartOptions = (isDark) => {
-    const textColor  = isDark ? "#d0dccb" : "#3a3f36";
-    const gridColor  = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
-    return {
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: {
-        legend: {
-          labels: { color: textColor }
-        }
-      },
-      scales: {
-        x: {
-          stacked: true,
-          ticks: { color: textColor },
-          grid:  { color: gridColor },
-        },
-        y: {
-          stacked: true,
-          ticks: { color: textColor },
-          grid:  { color: gridColor },
-        }
-      }
-    }
-  }
-
-  const [chartData, setChartData] = createSignal(
-    getChartData([], [], [], true)
-  )
-  const [chartOptions, setChartOptions] = createSignal(
-    getChartOptions(true)
-  )
-
-  onMount(() => {
-    Chart.register(...registerables)
+  const getChartData = (earlyStrafes, lateStrafes, perfectStrafes, c) => ({
+    labels,
+    datasets: [
+      { label: 'Early',   data: getOccurance(earlyStrafes),  borderRadius: 5, backgroundColor: c.chartEarly },
+      { label: 'Late',    data: getOccurance(lateStrafes),   borderRadius: 5, backgroundColor: c.chartLate },
+      { label: 'Perfect', data: [perfectStrafes.length],     borderRadius: 5, backgroundColor: c.chartPerfect },
+    ],
   })
 
+  const getChartOptions = (c) => ({
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: { labels: { color: c.text } }
+    },
+    scales: {
+      x: { stacked: true, ticks: { color: c.text }, grid: { color: c.text + "20" } },
+      y: { stacked: true, ticks: { color: c.text }, grid: { color: c.text + "20" } },
+    }
+  })
+
+  const c = () => props.isDark ? COLORS.dark : COLORS.light;
+  const [chartData,    setChartData]    = createSignal(getChartData([], [], [], COLORS.dark))
+  const [chartOptions, setChartOptions] = createSignal(getChartOptions(COLORS.dark))
+
+  onMount(() => { Chart.register(...registerables) })
+
   createEffect(() => {
-    const { earlyStrafes, lateStrafes, perfectStrafes, isDark } = props;
-    setChartData(getChartData(earlyStrafes, lateStrafes, perfectStrafes, isDark))
-    setChartOptions(getChartOptions(isDark))
+    const { earlyStrafes, lateStrafes, perfectStrafes } = props;
+    setChartData(getChartData(earlyStrafes, lateStrafes, perfectStrafes, c()))
+    setChartOptions(getChartOptions(c()))
   })
 
   return (
@@ -128,7 +112,6 @@ const MyChart = (props) => {
     </div>
   )
 }
-
 
 function Stats(props) {
   const [stats, setStats] = createSignal(
@@ -150,15 +133,15 @@ function Stats(props) {
   })
 
   return (
-    <div className="flex flex-col justify-center items-center flex-grow">
+    <div class="flex flex-col justify-center items-center flex-grow">
       <table style="width:100%">
-        <tbody className=" text-center">
+        <tbody class="text-center">
           <tr>
             <th></th>
-            <th className="w-16">All</th>
-            <th className="w-16">Early</th>
-            <th className="w-16">Late</th>
-            <th className="w-16">Perfect</th>
+            <th class="w-16">All</th>
+            <th class="w-16">Early</th>
+            <th class="w-16">Late</th>
+            <th class="w-16">Perfect</th>
           </tr>
           <tr>
             <th>Median</th>
@@ -197,14 +180,14 @@ function Stats(props) {
           </tr>
           <tr>
             <th>Samples</th>
-            <td>{(stats().alls.samples)}</td>
-            <td>{(stats().early.samples)}</td>
-            <td>{(stats().late.samples)}</td>
-            <td>{(stats().perfect.samples)}</td>
+            <td>{stats().alls.samples}</td>
+            <td>{stats().early.samples}</td>
+            <td>{stats().late.samples}</td>
+            <td>{stats().perfect.samples}</td>
           </tr>
         </tbody>
       </table>
-      <div className=" italic font-bold text-xl pt-4">
+      <div class="italic font-bold text-xl pt-4">
         <h1>Perfect {perfectCount() + "x"}</h1>
       </div>
     </div>
@@ -214,34 +197,19 @@ function Stats(props) {
 function WASD(props) {
   const [aPressed, setAPressed] = createSignal(false);
   const [dPressed, setDPressed] = createSignal(false);
+  const c = () => props.isDark ? COLORS.dark : COLORS.light;
 
   createEffect(() => {
-    let unlistenA
-    let unlistenReleaseA
-    let unlistenReleaseD
-    let unlistenD
+    let unlistenA, unlistenReleaseA, unlistenReleaseD, unlistenD
     const setupListeners = async () => {
-      unlistenA = await listen('a-pressed', (event) => {
-        setAPressed(true);
-      });
-      unlistenD = await listen('d-pressed', (event) => {
-        setDPressed(true);
-      });
-      unlistenReleaseA = await listen('a-released', (event) => {
-        setAPressed(false);
-      });
-      unlistenReleaseD = await listen('d-released', (event) => {
-        setDPressed(false);
-      });
+      unlistenA        = await listen('a-pressed',  () => setAPressed(true));
+      unlistenD        = await listen('d-pressed',  () => setDPressed(true));
+      unlistenReleaseA = await listen('a-released', () => setAPressed(false));
+      unlistenReleaseD = await listen('d-released', () => setDPressed(false));
     };
-
     onCleanup(() => {
       if (typeof unlistenA === "function") {
-        console.log("Cleaned up key listeners")
-        unlistenA();
-        unlistenReleaseA();
-        unlistenReleaseD();
-        unlistenD();
+        unlistenA(); unlistenReleaseA(); unlistenReleaseD(); unlistenD();
       }
     });
     setupListeners();
@@ -249,62 +217,66 @@ function WASD(props) {
 
   async function simulateEarly() {
     setAPressed(true)
-    setTimeout(() => { setAPressed(false) }, 500);
-    setTimeout(() => { setDPressed(true)  }, 850);
-    setTimeout(() => { setDPressed(false) }, 1350);
+    setTimeout(() => setAPressed(false), 500);
+    setTimeout(() => setDPressed(true),  850);
+    setTimeout(() => setDPressed(false), 1350);
   }
-
   async function simulateLate() {
     setAPressed(true)
-    setTimeout(() => { setDPressed(true)  }, 500);
-    setTimeout(() => { setAPressed(false) }, 850);
-    setTimeout(() => { setDPressed(false) }, 1350);
+    setTimeout(() => setDPressed(true),  500);
+    setTimeout(() => setAPressed(false), 850);
+    setTimeout(() => setDPressed(false), 1350);
   }
-
   async function simulatePerfect() {
     setAPressed(true)
-    setTimeout(() => { setDPressed(true)  }, 500);
-    setTimeout(() => { setAPressed(false) }, 500);
-    setTimeout(() => { setDPressed(false) }, 1000);
+    setTimeout(() => setDPressed(true),  500);
+    setTimeout(() => setAPressed(false), 500);
+    setTimeout(() => setDPressed(false), 1000);
   }
 
-  const perfectBg = () => PERFECT_HEX[props.isDark ? "dark" : "light"];
+  const keyStyle = (pressed) => () => ({
+    "background-color": pressed() ? c().accent + "80" : "rgba(180,180,180,0.15)",
+    "border-color":     c().text + "20",
+    "color":            c().text,
+    "transform":        pressed() ? "translateY(4px)" : "none",
+  });
 
   return (
-    <div className="flex group justify-center items-center w-full h-full">
-      <div className="flex flex-col basis-0 flex-grow items-end opacity-0 -translate-x-2 duration-200 group-hover:opacity-100 group-hover:translate-x-0">
-        <button className="wasd-button text-white bg-secondary" onClick={simulateEarly}>Early</button>
-        <button className="wasd-button text-white bg-accent"    onClick={simulateLate}>Late</button>
-        <button className="wasd-button text-white" style={"background-color:" + perfectBg()} onClick={simulatePerfect}>Perfect</button>
+    <div class="flex group justify-center items-center w-full h-full">
+      <div class="flex flex-col basis-0 flex-grow items-end opacity-0 -translate-x-2 duration-200 group-hover:opacity-100 group-hover:translate-x-0">
+        <button class="wasd-button text-white" style={{ "background-color": c().panel }}    onClick={simulateEarly}>Early</button>
+        <button class="wasd-button text-white" style={{ "background-color": c().accent }}   onClick={simulateLate}>Late</button>
+        <button class="wasd-button text-white" style={{ "background-color": c().perfect }}  onClick={simulatePerfect}>Perfect</button>
       </div>
 
-      <div className="flex justify-center basis-0 flex-grow">
-        <div className="select-none pointer-events-none text-dark flex justify-between w-40 text-center font-bold text-xl">
-          <div className={"flex border-dark/10 border-r border-b shadow-lg border-b-dark/50 w-16 h-16 rounded-md justify-center items-center duration-75" + (aPressed() ? " bg-accent/50 scale-100 translate-y-[4px]" : " bg-zinc-200/25")}>
+      <div class="flex justify-center basis-0 flex-grow">
+        <div class="select-none pointer-events-none flex justify-between w-40 text-center font-bold text-xl">
+          <div class="flex border border-r border-b shadow-lg w-16 h-16 rounded-md justify-center items-center duration-75"
+               style={keyStyle(aPressed)()}>
             <p>A</p>
           </div>
-          <div className={"flex border-dark/10 border-l border-b shadow-lg border-b-dark/50 w-16 h-16 rounded-md justify-center items-center duration-75" + (dPressed() ? " bg-accent/50 translate-y-[4px]" : " bg-zinc-200/25")}>
+          <div class="flex border border-l border-b shadow-lg w-16 h-16 rounded-md justify-center items-center duration-75"
+               style={keyStyle(dPressed)()}>
             <p>D</p>
           </div>
         </div>
       </div>
-      <div className="basis-0 flex-grow min-w-[200px]"></div>
+      <div class="basis-0 flex-grow min-w-[200px]"></div>
     </div>
   )
 }
 
 function App() {
   const [isDark, setIsDark] = createSignal(true);
-  const [totalStrafes, setTotalStrafes] = createSignal([]);
-  const [earlyStrafes, setEarlyStrafes] = createSignal([]);
-  const [lateStrafes, setLateStrafes] = createSignal([]);
+  const [totalStrafes,   setTotalStrafes]   = createSignal([]);
+  const [earlyStrafes,   setEarlyStrafes]   = createSignal([]);
+  const [lateStrafes,    setLateStrafes]    = createSignal([]);
   const [perfectStrafes, setPerfectStrafes] = createSignal([]);
 
+  const c = () => isDark() ? COLORS.dark : COLORS.light;
+
   function resetStrafes() {
-    setEarlyStrafes([]);
-    setLateStrafes([]);
-    setPerfectStrafes([]);
-    setTotalStrafes([]);
+    setEarlyStrafes([]); setLateStrafes([]); setPerfectStrafes([]); setTotalStrafes([]);
   }
 
   createEffect(() => {
@@ -320,20 +292,21 @@ function App() {
         setTotalStrafes(a => [strafe, ...a])
       })
     };
-    onCleanup(() => {
-      if (typeof unlistenStrafe === "function") { unlistenStrafe(); }
-    });
+    onCleanup(() => { if (typeof unlistenStrafe === "function") unlistenStrafe(); });
     setupListeners();
   });
 
   return (
-    <div class={"w-screen h-screen bg-bright text-dark flex flex-col" + (isDark() ? "" : " light-mode")}>
+    <div class="w-screen h-screen flex flex-col" style={{ "background-color": c().bg, "color": c().text }}>
+
       {/* Header */}
-      <div className="relative flex justify-center items-center select-none pointer-events-none">
-        <h1 className="mr-3 drop-shadow-lg py-4 text-4xl pointer-events-none font-bold text-center text-bright text-stroke italic">PatrikZero's</h1>
-        <h1 className="py-4 text-4xl font-bold text-center pointer-events-none">Strafe Evaluation</h1>
+      <div class="relative flex justify-center items-center select-none pointer-events-none">
+        <h1 class="mr-3 drop-shadow-lg py-4 text-4xl pointer-events-none font-bold text-center italic"
+            style={{ "color": c().bg, "-webkit-text-stroke": "1px " + c().textStroke }}>PatrikZero's</h1>
+        <h1 class="py-4 text-4xl font-bold text-center pointer-events-none">Strafe Evaluation</h1>
         <button
-          className="absolute right-4 pointer-events-auto shadow-md px-3 py-1 rounded-md bg-primary text-bright hover:scale-105"
+          class="absolute right-4 pointer-events-auto shadow-md px-3 py-1 rounded-md hover:scale-105"
+          style={{ "background-color": c().primary, "color": c().bg }}
           onClick={() => setIsDark(d => !d)}
         >
           {isDark() ? "☀ Light" : "☾ Dark"}
@@ -341,33 +314,39 @@ function App() {
       </div>
 
       {/* Main panels */}
-      <div className="justify-between flex-grow flex">
-        <div className="flex flex-col rounded-xl border-t border-white/10 m-4 p-4 w-[50%] bg-secondary/50 shadow-xl">
-          <div className="flex justify-between mb-2">
-            <h2 className="select-none text-2xl font-bold">Statistics</h2>
-            <button className="text-bright select-none shadow-md px-2 rounded-md bg-primary hover:scale-110" type="submit" onClick={() => { resetStrafes() }}>Reset</button>
+      <div class="justify-between flex-grow flex">
+        <div class="flex flex-col rounded-xl border-t border-white/10 m-4 p-4 w-[50%] shadow-xl"
+             style={{ "background-color": c().panel + "80" }}>
+          <div class="flex justify-between mb-2">
+            <h2 class="select-none text-2xl font-bold">Statistics</h2>
+            <button class="select-none shadow-md px-2 rounded-md hover:scale-110"
+                    style={{ "background-color": c().primary, "color": c().bg }}
+                    onClick={resetStrafes}>Reset</button>
           </div>
-          <Stats earlyStrafes={earlyStrafes()} lateStrafes={lateStrafes()} perfectStrafes={perfectStrafes()}></Stats>
+          <Stats earlyStrafes={earlyStrafes()} lateStrafes={lateStrafes()} perfectStrafes={perfectStrafes()} />
         </div>
-        <div className="flex flex-col m-4 justify-center rounded-xl w-[50%]">
-          <MyChart earlyStrafes={earlyStrafes()} lateStrafes={lateStrafes()} perfectStrafes={perfectStrafes()} isDark={isDark()}></MyChart>
+        <div class="flex flex-col m-4 justify-center rounded-xl w-[50%]">
+          <MyChart earlyStrafes={earlyStrafes()} lateStrafes={lateStrafes()} perfectStrafes={perfectStrafes()} isDark={isDark()} />
         </div>
       </div>
 
       {/* WASD */}
-      <div className="h-32 mb-4 flex items-center justify-center">
-        <WASD isDark={isDark()}></WASD>
+      <div class="h-32 mb-4 flex items-center justify-center">
+        <WASD isDark={isDark()} />
       </div>
 
       {/* Strafe history bar */}
-      <div className="flex flex-row p-2 bg-accent/25 h-20 overflow-clip w-full">
-        <For each={totalStrafes()}>{(strafe, i) =>
-          <div className="flex shadow-md select-none flex-col border-bright/75 border-t bg-secondary/45 rounded-md justify-center items-center min-w-16 mr-2">
-            <p className="font-bold text-center">{strafe.type}</p>
-            <p className="text-center">{draw_time(strafe.duration)}</p>
+      <div class="flex flex-row p-2 h-20 overflow-clip w-full"
+           style={{ "background-color": c().accent + "40" }}>
+        <For each={totalStrafes()}>{(strafe) =>
+          <div class="flex shadow-md select-none flex-col rounded-md justify-center items-center min-w-16 mr-2"
+               style={{ "background-color": c().panel + "70", "border-top": "1px solid " + c().bg + "bf" }}>
+            <p class="font-bold text-center">{strafe.type}</p>
+            <p class="text-center">{draw_time(strafe.duration)}</p>
           </div>
         }</For>
       </div>
+
     </div>
   );
 }
