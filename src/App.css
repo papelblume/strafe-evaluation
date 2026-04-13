@@ -10,14 +10,12 @@
 
 body {
   margin: 0;
-  /* Edit below */
   font-family: system-ui, sans-serif;
-  background-color: #0f172a; /* Modern dark background (slate-900) */
-  color: #f8fafc; /* Light text for perfect contrast */
 }
 
+/* The rest of your styles stay exactly the same */
 .text-stroke {
-  -webkit-text-stroke: 1px #020617; /* Dark stroke works great with light text */
+  -webkit-text-stroke: 1px #020617;
 }
 
 .bottom-bar {
