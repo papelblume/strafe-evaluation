@@ -4,6 +4,15 @@ import { Chart, registerables } from 'chart.js'
 import { Bar } from 'solid-chartjs'
 import { listen } from '@tauri-apps/api/event'
 
+// Chart hex colors — Chart.js cannot resolve CSS variables, so hardcoded per mode
+const CHART_COLORS = {
+  dark:  { early: "#4a7040", late: "#3a7068", perfect: "#6b6040" },
+  light: { early: "#a5c5ae", late: "#8cb5a8", perfect: "#b5ac8c" },
+}
+
+// Perfect button/hex color for inline styles
+const PERFECT_HEX = { dark: "#6b6040", light: "#b5ac8c" }
+
 function draw_time(time) {
   return (time / 1000).toFixed(0) + " ms"
 }
@@ -22,12 +31,7 @@ function getMeanAndVar(arr) {
   variance /= num;
   variance = Math.sqrt(variance)
 
-  var res = {
-    average: average,
-    std_deviation: variance
-  }
-
-  return res
+  return { average: average, std_deviation: variance }
 }
 
 function getStats(duration_array) {
@@ -49,37 +53,64 @@ function getStats(duration_array) {
 
 function getOccurance(duration_array) {
   if (!duration_array || duration_array.length == 0) {
-    console.log("Array too small for graph")
     return [0]
   }
   let out = new Array(41).fill(0);
-
   duration_array.map((x) => {
     let n = Math.ceil(x / 5000)
     out[n] = out[n] + 1
   })
-
   return out
 }
 
 const MyChart = (props) => {
   const labels = Array.from({ length: 201 / 5 + 1 }, (_, i) => i * 5);
-  const [chartData, setChartData] = createSignal({
-    labels: labels,
-    datasets: [
-      {
-        label: 'Early',
-        data: getOccurance([]),
-        backgroundColor: "var(--color-secondary)",
+
+  const getChartData = (earlyStrafes, lateStrafes, perfectStrafes, isDark) => {
+    const mode = isDark ? "dark" : "light";
+    const c = CHART_COLORS[mode];
+    return {
+      labels: labels,
+      datasets: [
+        { label: 'Early',   data: getOccurance(earlyStrafes),  borderRadius: 5, backgroundColor: c.early },
+        { label: 'Late',    data: getOccurance(lateStrafes),   borderRadius: 5, backgroundColor: c.late },
+        { label: 'Perfect', data: [perfectStrafes.length],     borderRadius: 5, backgroundColor: c.perfect },
+      ],
+    }
+  }
+
+  const getChartOptions = (isDark) => {
+    const textColor  = isDark ? "#d0dccb" : "#3a3f36";
+    const gridColor  = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+    return {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          labels: { color: textColor }
+        }
       },
-      {
-        label: 'Late',
-        data: [0],
-        borderRadius: 5,
-        backgroundColor: "var(--color-accent)",
-      },
-    ],
-  })
+      scales: {
+        x: {
+          stacked: true,
+          ticks: { color: textColor },
+          grid:  { color: gridColor },
+        },
+        y: {
+          stacked: true,
+          ticks: { color: textColor },
+          grid:  { color: gridColor },
+        }
+      }
+    }
+  }
+
+  const [chartData, setChartData] = createSignal(
+    getChartData([], [], [], true)
+  )
+  const [chartOptions, setChartOptions] = createSignal(
+    getChartOptions(true)
+  )
 
   onMount(() => {
     Chart.register(...registerables)
@@ -87,48 +118,13 @@ const MyChart = (props) => {
 
   createEffect(() => {
     const { earlyStrafes, lateStrafes, perfectStrafes, isDark } = props;
-    const perfectColor = isDark ? "#7a6f4a" : "#b5ac8c";
-    setChartData({
-      labels: labels,
-      datasets: [
-        {
-          label: 'Early',
-          data: getOccurance(earlyStrafes),
-          borderRadius: 5,
-          backgroundColor: "var(--color-secondary)",
-        },
-        {
-          label: 'Late',
-          data: getOccurance(lateStrafes),
-          borderRadius: 5,
-          backgroundColor: "var(--color-accent)",
-        },
-        {
-          label: 'Perfect',
-          data: [perfectStrafes.length],
-          borderRadius: 5,
-          backgroundColor: perfectColor,
-        },
-      ],
-    })
+    setChartData(getChartData(earlyStrafes, lateStrafes, perfectStrafes, isDark))
+    setChartOptions(getChartOptions(isDark))
   })
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: true,
-    scales: {
-      x: {
-        stacked: true,
-      },
-      y: {
-        stacked: true
-      }
-    }
-  }
 
   return (
     <div>
-      <Bar data={chartData()} options={chartOptions} width={4} height={3} />
+      <Bar data={chartData()} options={chartOptions()} width={4} height={3} />
     </div>
   )
 }
@@ -143,12 +139,11 @@ function Stats(props) {
 
   createEffect(() => {
     const { earlyStrafes, lateStrafes, perfectStrafes } = props;
-
     setPerfectCount(perfectStrafes.length)
     setStats((prev) => {
-      prev.alls = getStats([...earlyStrafes, ...lateStrafes, ...perfectStrafes])
-      prev.early = getStats(earlyStrafes)
-      prev.late = getStats(lateStrafes)
+      prev.alls    = getStats([...earlyStrafes, ...lateStrafes, ...perfectStrafes])
+      prev.early   = getStats(earlyStrafes)
+      prev.late    = getStats(lateStrafes)
       prev.perfect = getStats(perfectStrafes)
       return prev
     })
@@ -229,19 +224,15 @@ function WASD(props) {
       unlistenA = await listen('a-pressed', (event) => {
         setAPressed(true);
       });
-
       unlistenD = await listen('d-pressed', (event) => {
         setDPressed(true);
       });
-
       unlistenReleaseA = await listen('a-released', (event) => {
         setAPressed(false);
       });
-
       unlistenReleaseD = await listen('d-released', (event) => {
         setDPressed(false);
       });
-
     };
 
     onCleanup(() => {
@@ -258,71 +249,46 @@ function WASD(props) {
 
   async function simulateEarly() {
     setAPressed(true)
-    setTimeout(() => {
-      setAPressed(false)
-    }, 500);
-    setTimeout(() => {
-      setDPressed(true)
-    }, 850);
-    setTimeout(() => {
-      setDPressed(false)
-    }, 1350);
+    setTimeout(() => { setAPressed(false) }, 500);
+    setTimeout(() => { setDPressed(true)  }, 850);
+    setTimeout(() => { setDPressed(false) }, 1350);
   }
 
   async function simulateLate() {
     setAPressed(true)
-    setTimeout(() => {
-      setDPressed(true)
-    }, 500);
-    setTimeout(() => {
-      setAPressed(false)
-    }, 850);
-    setTimeout(() => {
-      setDPressed(false)
-    }, 1350);
+    setTimeout(() => { setDPressed(true)  }, 500);
+    setTimeout(() => { setAPressed(false) }, 850);
+    setTimeout(() => { setDPressed(false) }, 1350);
   }
 
   async function simulatePerfect() {
     setAPressed(true)
-    setTimeout(() => {
-      setDPressed(true)
-    }, 500);
-    setTimeout(() => {
-      setAPressed(false)
-    }, 500);
-    setTimeout(() => {
-      setDPressed(false)
-    }, 1000);
+    setTimeout(() => { setDPressed(true)  }, 500);
+    setTimeout(() => { setAPressed(false) }, 500);
+    setTimeout(() => { setDPressed(false) }, 1000);
   }
 
-  const perfectBg = () => props.isDark ? "#7a6f4a" : "#b5ac8c";
+  const perfectBg = () => PERFECT_HEX[props.isDark ? "dark" : "light"];
 
   return (
     <div className="flex group justify-center items-center w-full h-full">
-
       <div className="flex flex-col basis-0 flex-grow items-end opacity-0 -translate-x-2 duration-200 group-hover:opacity-100 group-hover:translate-x-0">
         <button className="wasd-button text-white bg-secondary" onClick={simulateEarly}>Early</button>
-        <button className="wasd-button text-white bg-accent" onClick={simulateLate}>Late</button>
+        <button className="wasd-button text-white bg-accent"    onClick={simulateLate}>Late</button>
         <button className="wasd-button text-white" style={"background-color:" + perfectBg()} onClick={simulatePerfect}>Perfect</button>
       </div>
 
       <div className="flex justify-center basis-0 flex-grow">
         <div className="select-none pointer-events-none text-dark flex justify-between w-40 text-center font-bold text-xl">
-          <div className={"flex  border-dark/10 border-r  border-b shadow-lg border-b-dark/50 w-16 h-16 rounded-md justify-center items-center duration-75" + (aPressed() ? " bg-accent/50 scale-100 translate-y-[4px]" : "bg-zinc-200/25 ")}>
-            <p>
-              A
-            </p>
+          <div className={"flex border-dark/10 border-r border-b shadow-lg border-b-dark/50 w-16 h-16 rounded-md justify-center items-center duration-75" + (aPressed() ? " bg-accent/50 scale-100 translate-y-[4px]" : " bg-zinc-200/25")}>
+            <p>A</p>
           </div>
-          <div className={"flex  border-dark/10 border-l  border-b shadow-lg border-b-dark/50 w-16 h-16 rounded-md justify-center items-center duration-75" + (dPressed() ? " bg-accent/50 translate-y-[4px]" : "bg-zinc-200/25")}>
-            <p>
-              D
-            </p>
+          <div className={"flex border-dark/10 border-l border-b shadow-lg border-b-dark/50 w-16 h-16 rounded-md justify-center items-center duration-75" + (dPressed() ? " bg-accent/50 translate-y-[4px]" : " bg-zinc-200/25")}>
+            <p>D</p>
           </div>
         </div>
       </div>
-      <div className="basis-0 flex-grow bg-red-200 min-w-[200px]">
-      </div>
-
+      <div className="basis-0 flex-grow min-w-[200px]"></div>
     </div>
   )
 }
@@ -345,34 +311,24 @@ function App() {
     let unlistenStrafe
     const setupListeners = async () => {
       unlistenStrafe = await listen('strafe', (event) => {
-
         let strafe = { type: event.payload.strafe_type, duration: event.payload.duration }
         switch (strafe.type) {
-          case "Early":
-            setEarlyStrafes(a => [strafe.duration, ...a])
-            break;
-          case "Late":
-            setLateStrafes(a => [strafe.duration, ...a])
-            break;
-          case "Perfect":
-            setPerfectStrafes(a => [strafe.duration, ...a])
-            break;
+          case "Early":   setEarlyStrafes(a   => [strafe.duration, ...a]); break;
+          case "Late":    setLateStrafes(a    => [strafe.duration, ...a]); break;
+          case "Perfect": setPerfectStrafes(a => [strafe.duration, ...a]); break;
         }
         setTotalStrafes(a => [strafe, ...a])
       })
     };
-
     onCleanup(() => {
-      if (typeof unlistenStrafe === "function") {
-        unlistenStrafe();
-      }
+      if (typeof unlistenStrafe === "function") { unlistenStrafe(); }
     });
     setupListeners();
   });
 
   return (
     <div class={"w-screen h-screen bg-bright text-dark flex flex-col" + (isDark() ? "" : " light-mode")}>
-      {/* 1 */}
+      {/* Header */}
       <div className="relative flex justify-center items-center select-none pointer-events-none">
         <h1 className="mr-3 drop-shadow-lg py-4 text-4xl pointer-events-none font-bold text-center text-bright text-stroke italic">PatrikZero's</h1>
         <h1 className="py-4 text-4xl font-bold text-center pointer-events-none">Strafe Evaluation</h1>
@@ -384,39 +340,35 @@ function App() {
         </button>
       </div>
 
-      {/* 2 */}
-      <div className=" justify-between flex-grow flex">
-        {/* A */}
-        <div className="flex flex-col rounded-xl border-t border-white m-4 p-4 w-[50%] bg-secondary/50 shadow-xl">
+      {/* Main panels */}
+      <div className="justify-between flex-grow flex">
+        <div className="flex flex-col rounded-xl border-t border-white/10 m-4 p-4 w-[50%] bg-secondary/50 shadow-xl">
           <div className="flex justify-between mb-2">
             <h2 className="select-none text-2xl font-bold">Statistics</h2>
-            <button className="text-bright select-none shadow-md px-2 rounded-md bg-primary hover:scale-110 " type="submit" onClick={() => {
-              resetStrafes()
-            }}>Reset</button>
+            <button className="text-bright select-none shadow-md px-2 rounded-md bg-primary hover:scale-110" type="submit" onClick={() => { resetStrafes() }}>Reset</button>
           </div>
           <Stats earlyStrafes={earlyStrafes()} lateStrafes={lateStrafes()} perfectStrafes={perfectStrafes()}></Stats>
         </div>
-        {/* B */}
-        <div className="flex  flex-col m-4 justify-center rounded-xl w-[50%] ">
-          <MyChart earlyStrafes={earlyStrafes()} lateStrafes={lateStrafes()} perfectStrafes={perfectStrafes()} isDark={isDark()} ></MyChart>
+        <div className="flex flex-col m-4 justify-center rounded-xl w-[50%]">
+          <MyChart earlyStrafes={earlyStrafes()} lateStrafes={lateStrafes()} perfectStrafes={perfectStrafes()} isDark={isDark()}></MyChart>
         </div>
       </div>
 
-      {/* 3 */}
+      {/* WASD */}
       <div className="h-32 mb-4 flex items-center justify-center">
         <WASD isDark={isDark()}></WASD>
       </div>
-      {/* 4 */}
-      <div className="flex  flex-row p-2 bg-accent/25 h-20 overflow-clip  w-full">
 
+      {/* Strafe history bar */}
+      <div className="flex flex-row p-2 bg-accent/25 h-20 overflow-clip w-full">
         <For each={totalStrafes()}>{(strafe, i) =>
-          <div className="flex shadow-md select-none flex-col border-bright/75 border-t bg-secondary/45 rounded-md  justify-center items-center  min-w-16 mr-2 ">
+          <div className="flex shadow-md select-none flex-col border-bright/75 border-t bg-secondary/45 rounded-md justify-center items-center min-w-16 mr-2">
             <p className="font-bold text-center">{strafe.type}</p>
             <p className="text-center">{draw_time(strafe.duration)}</p>
           </div>
         }</For>
       </div>
-    </div >
+    </div>
   );
 }
 
