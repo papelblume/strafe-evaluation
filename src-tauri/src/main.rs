@@ -32,7 +32,7 @@ fn eval_understrafe(elapsed: Duration, released_time: &mut Option<SystemTime>, a
             "strafe",
             Payload {
                 strafe_type: "Perfect".into(),
-                duration: 0,
+                duration: time_passed,  // was: 0
             },
         )
         .unwrap();
