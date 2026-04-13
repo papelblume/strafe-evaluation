@@ -1,47 +1,18 @@
- @tailwind base;
- @tailwind components;
- @tailwind utilities;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* RGB triplets — required for Tailwind opacity modifiers (bg-secondary/50 etc.) */
-:root {
-  --color-primary:   74, 112, 64;
-  --color-accent:    26, 48, 40;
-  --color-secondary: 31, 45, 30;
-  --color-dark:      208, 220, 203;
-  --color-bright:    24, 26, 24;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-.light-mode {
-  --color-primary:   136, 165, 111;
-  --color-accent:    140, 181, 168;
-  --color-secondary: 165, 197, 174;
-  --color-dark:      58, 63, 54;
-  --color-bright:    244, 244, 244;
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
 }
 
- *,
- *::before,
- *::after {
-   box-sizing: border-box;
- }
-
- body {
-   margin: 0;
-   font-family: system-ui, sans-serif;
-   background-color: rgb(var(--color-bright));
-   color: rgb(var(--color-dark));
- }
-
- .text-stroke {
-   -webkit-text-stroke: 1px rgb(var(--color-dark));
- }
-
- .bottom-bar {
-   -webkit-box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.19);
-   -moz-box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.19);
-   box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.19);
- }
-
- .wasd-button {
-   @apply shadow-md font-medium px-3 w-20 py-1 my-1 cursor-pointer rounded-md hover:scale-105
- }
+.wasd-button {
+  @apply shadow-md font-medium px-3 w-20 py-1 my-1 cursor-pointer rounded-md hover:scale-105
+}
