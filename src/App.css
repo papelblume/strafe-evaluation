@@ -10,7 +10,20 @@
 
 body {
   margin: 0;
+  /* Edit below */
   font-family: system-ui, sans-serif;
+  background-color: #0f172a; /* Modern dark background (slate-900) */
+  color: #f8fafc; /* Light text for perfect contrast */
+}
+
+.text-stroke {
+  -webkit-text-stroke: 1px #020617; /* Dark stroke works great with light text */
+}
+
+.bottom-bar {
+  -webkit-box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.3);
+  -moz-box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.3);
+  box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.3);
 }
 
 .wasd-button {
