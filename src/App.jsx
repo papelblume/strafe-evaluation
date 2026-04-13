@@ -9,7 +9,6 @@ function draw_time(time) {
 }
 
 function getMeanAndVar(arr) {
-
   var sum = arr.reduce(function (pre, cur) {
     return pre + cur;
   })
@@ -71,24 +70,24 @@ const MyChart = (props) => {
       {
         label: 'Early',
         data: getOccurance([]),
-        backgroundColor: "#a5c5ae",
+        backgroundColor: "var(--color-secondary)",
       },
       {
         label: 'Late',
         data: [0],
         borderRadius: 5,
-        backgroundColor: "#8cb5a8",
+        backgroundColor: "var(--color-accent)",
       },
     ],
   })
-
 
   onMount(() => {
     Chart.register(...registerables)
   })
 
   createEffect(() => {
-    const { earlyStrafes, lateStrafes, perfectStrafes } = props;
+    const { earlyStrafes, lateStrafes, perfectStrafes, isDark } = props;
+    const perfectColor = isDark ? "#7a6f4a" : "#b5ac8c";
     setChartData({
       labels: labels,
       datasets: [
@@ -96,19 +95,19 @@ const MyChart = (props) => {
           label: 'Early',
           data: getOccurance(earlyStrafes),
           borderRadius: 5,
-          backgroundColor: "#a5c5ae",
+          backgroundColor: "var(--color-secondary)",
         },
         {
           label: 'Late',
           data: getOccurance(lateStrafes),
           borderRadius: 5,
-          backgroundColor: "#8cb5a8",
+          backgroundColor: "var(--color-accent)",
         },
         {
           label: 'Perfect',
           data: [perfectStrafes.length],
           borderRadius: 5,
-          backgroundColor: "#b5ac8c",
+          backgroundColor: perfectColor,
         },
       ],
     })
@@ -136,19 +135,17 @@ const MyChart = (props) => {
 
 
 function Stats(props) {
-  //const [stats, setStats] = createSignal({ alls: getStats([]), early: getStats([]), late: getStats([]) }, { equals: false });
-  const [stats, setStats] = createSignal({ alls: getStats([]), early: getStats([]), late: getStats([]), perfect: getStats([]) }, { equals: false });
+  const [stats, setStats] = createSignal(
+    { alls: getStats([]), early: getStats([]), late: getStats([]), perfect: getStats([]) },
+    { equals: false }
+  );
   const [perfectCount, setPerfectCount] = createSignal(0)
-
 
   createEffect(() => {
     const { earlyStrafes, lateStrafes, perfectStrafes } = props;
 
     setPerfectCount(perfectStrafes.length)
     setStats((prev) => {
-      //prev.alls = getStats([...earlyStrafes, ...lateStrafes, ...perfectStrafes])
-      //prev.early = getStats(earlyStrafes)
-      //prev.late = getStats(lateStrafes)
       prev.alls = getStats([...earlyStrafes, ...lateStrafes, ...perfectStrafes])
       prev.early = getStats(earlyStrafes)
       prev.late = getStats(lateStrafes)
@@ -156,9 +153,6 @@ function Stats(props) {
       return prev
     })
   })
-
-
-
 
   return (
     <div className="flex flex-col justify-center items-center flex-grow">
@@ -211,7 +205,7 @@ function Stats(props) {
             <td>{(stats().alls.samples)}</td>
             <td>{(stats().early.samples)}</td>
             <td>{(stats().late.samples)}</td>
-            <td>{draw_time(stats().perfect.samples)}</td>
+            <td>{(stats().perfect.samples)}</td>
           </tr>
         </tbody>
       </table>
@@ -222,7 +216,7 @@ function Stats(props) {
   )
 }
 
-function WASD() {
+function WASD(props) {
   const [aPressed, setAPressed] = createSignal(false);
   const [dPressed, setDPressed] = createSignal(false);
 
@@ -301,13 +295,15 @@ function WASD() {
     }, 1000);
   }
 
+  const perfectBg = () => props.isDark ? "#7a6f4a" : "#b5ac8c";
+
   return (
-    <div className="flex group justify-center items-center w-full h-full   ">
+    <div className="flex group justify-center items-center w-full h-full">
 
       <div className="flex flex-col basis-0 flex-grow items-end opacity-0 -translate-x-2 duration-200 group-hover:opacity-100 group-hover:translate-x-0">
         <button className="wasd-button text-white bg-secondary" onClick={simulateEarly}>Early</button>
         <button className="wasd-button text-white bg-accent" onClick={simulateLate}>Late</button>
-        <button className="wasd-button text-white bg-[#b5ac8c]" onClick={simulatePerfect}>Perfect</button>
+        <button className="wasd-button text-white" style={"background-color:" + perfectBg()} onClick={simulatePerfect}>Perfect</button>
       </div>
 
       <div className="flex justify-center basis-0 flex-grow">
@@ -324,16 +320,15 @@ function WASD() {
           </div>
         </div>
       </div>
-      <div className="basis-0 flex-grow bg-red-200 min-w-[200px] ">
-
+      <div className="basis-0 flex-grow bg-red-200 min-w-[200px]">
       </div>
-
 
     </div>
   )
 }
 
 function App() {
+  const [isDark, setIsDark] = createSignal(true);
   const [totalStrafes, setTotalStrafes] = createSignal([]);
   const [earlyStrafes, setEarlyStrafes] = createSignal([]);
   const [lateStrafes, setLateStrafes] = createSignal([]);
@@ -367,7 +362,6 @@ function App() {
       })
     };
 
-
     onCleanup(() => {
       if (typeof unlistenStrafe === "function") {
         unlistenStrafe();
@@ -375,13 +369,19 @@ function App() {
     });
     setupListeners();
   });
-  return (
-    <div class="w-screen h-screen bg-bright text-dark flex flex-col">
-      {/* 1 */}
-      <div className="flex justify-center items-center select-none pointer-events-none">
 
-        <h1 className="mr-3 drop-shadow-lg  py-4 text-4xl pointer-events-none font-bold text-center text-bright text-stroke italic">PatrikZero's</h1>
-        <h1 className="  py-4 text-4xl font-bold text-center pointer-events-none ">Strafe Evaluation</h1>
+  return (
+    <div class={"w-screen h-screen bg-bright text-dark flex flex-col" + (isDark() ? "" : " light-mode")}>
+      {/* 1 */}
+      <div className="relative flex justify-center items-center select-none pointer-events-none">
+        <h1 className="mr-3 drop-shadow-lg py-4 text-4xl pointer-events-none font-bold text-center text-bright text-stroke italic">PatrikZero's</h1>
+        <h1 className="py-4 text-4xl font-bold text-center pointer-events-none">Strafe Evaluation</h1>
+        <button
+          className="absolute right-4 pointer-events-auto shadow-md px-3 py-1 rounded-md bg-primary text-bright hover:scale-105"
+          onClick={() => setIsDark(d => !d)}
+        >
+          {isDark() ? "☀ Light" : "☾ Dark"}
+        </button>
       </div>
 
       {/* 2 */}
@@ -398,13 +398,13 @@ function App() {
         </div>
         {/* B */}
         <div className="flex  flex-col m-4 justify-center rounded-xl w-[50%] ">
-          <MyChart earlyStrafes={earlyStrafes()} lateStrafes={lateStrafes()} perfectStrafes={perfectStrafes()} ></MyChart>
+          <MyChart earlyStrafes={earlyStrafes()} lateStrafes={lateStrafes()} perfectStrafes={perfectStrafes()} isDark={isDark()} ></MyChart>
         </div>
       </div>
 
       {/* 3 */}
       <div className="h-32 mb-4 flex items-center justify-center">
-        <WASD></WASD>
+        <WASD isDark={isDark()}></WASD>
       </div>
       {/* 4 */}
       <div className="flex  flex-row p-2 bg-accent/25 h-20 overflow-clip  w-full">
