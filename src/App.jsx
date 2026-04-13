@@ -136,7 +136,8 @@ const MyChart = (props) => {
 
 
 function Stats(props) {
-  const [stats, setStats] = createSignal({ alls: getStats([]), early: getStats([]), late: getStats([]) }, { equals: false });
+  //const [stats, setStats] = createSignal({ alls: getStats([]), early: getStats([]), late: getStats([]) }, { equals: false });
+  const [stats, setStats] = createSignal({ alls: getStats([]), early: getStats([]), late: getStats([]), perfect: getStats([]) }, { equals: false });
   const [perfectCount, setPerfectCount] = createSignal(0)
 
 
@@ -145,9 +146,13 @@ function Stats(props) {
 
     setPerfectCount(perfectStrafes.length)
     setStats((prev) => {
+      //prev.alls = getStats([...earlyStrafes, ...lateStrafes, ...perfectStrafes])
+      //prev.early = getStats(earlyStrafes)
+      //prev.late = getStats(lateStrafes)
       prev.alls = getStats([...earlyStrafes, ...lateStrafes, ...perfectStrafes])
       prev.early = getStats(earlyStrafes)
       prev.late = getStats(lateStrafes)
+      prev.perfect = getStats(perfectStrafes)
       return prev
     })
   })
@@ -164,42 +169,49 @@ function Stats(props) {
             <th className="w-16">All</th>
             <th className="w-16">Early</th>
             <th className="w-16">Late</th>
+            <th className="w-16">Perfect</th>
           </tr>
           <tr>
             <th>Median</th>
             <td>{draw_time(stats().alls.median)}</td>
             <td>{draw_time(stats().early.median)}</td>
             <td>{draw_time(stats().late.median)}</td>
+            <td>{draw_time(stats().perfect.median)}</td>
           </tr>
           <tr>
             <th>Average</th>
             <td>{draw_time(stats().alls.average)}</td>
             <td>{draw_time(stats().early.average)}</td>
             <td>{draw_time(stats().late.average)}</td>
+            <td>{draw_time(stats().perfect.average)}</td>
           </tr>
           <tr>
             <th>Min</th>
             <td>{draw_time(stats().alls.min)}</td>
             <td>{draw_time(stats().early.min)}</td>
             <td>{draw_time(stats().late.min)}</td>
+            <td>{draw_time(stats().perfect.min)}</td>
           </tr>
           <tr>
             <th>Max</th>
             <td>{draw_time(stats().alls.max)}</td>
             <td>{draw_time(stats().early.max)}</td>
             <td>{draw_time(stats().late.max)}</td>
+            <td>{draw_time(stats().perfect.max)}</td>
           </tr>
           <tr>
             <th>Std. Deviation</th>
             <td>{draw_time(stats().alls.std_deviation)}</td>
             <td>{draw_time(stats().early.std_deviation)}</td>
             <td>{draw_time(stats().late.std_deviation)}</td>
+            <td>{draw_time(stats().perfect.std_deviation)}</td>
           </tr>
           <tr>
             <th>Samples</th>
             <td>{(stats().alls.samples)}</td>
             <td>{(stats().early.samples)}</td>
             <td>{(stats().late.samples)}</td>
+            <td>{draw_time(stats().perfect.samples)}</td>
           </tr>
         </tbody>
       </table>
