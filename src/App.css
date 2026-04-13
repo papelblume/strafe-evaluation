@@ -2,22 +2,21 @@
  @tailwind components;
  @tailwind utilities;
 
+/* RGB triplets — required for Tailwind opacity modifiers (bg-secondary/50 etc.) */
 :root {
-  --color-primary:   #5a7a45;
-  --color-accent:    #4a7a6e;
-  --color-secondary: #2a3528;
-  --color-dark:      #d4d4d4;
-  --color-bright:    #1a1a1a;
-  --color-perfect:   #7a6f4a;
+  --color-primary:   74, 112, 64;
+  --color-accent:    26, 48, 40;
+  --color-secondary: 31, 45, 30;
+  --color-dark:      208, 220, 203;
+  --color-bright:    24, 26, 24;
 }
 
 .light-mode {
-  --color-primary:   #88a56f;
-  --color-accent:    #8cb5a8;
-  --color-secondary: #a5c5ae;
-  --color-dark:      #3a3f36;
-  --color-bright:    #f4f4f4;
-  --color-perfect:   #b5ac8c;
+  --color-primary:   136, 165, 111;
+  --color-accent:    140, 181, 168;
+  --color-secondary: 165, 197, 174;
+  --color-dark:      58, 63, 54;
+  --color-bright:    244, 244, 244;
 }
 
  *,
@@ -29,12 +28,12 @@
  body {
    margin: 0;
    font-family: system-ui, sans-serif;
-   background-color: var(--color-bright);
-   color: var(--color-dark);
+   background-color: rgb(var(--color-bright));
+   color: rgb(var(--color-dark));
  }
 
  .text-stroke {
-   -webkit-text-stroke: 1px var(--color-dark);
+   -webkit-text-stroke: 1px rgb(var(--color-dark));
  }
 
  .bottom-bar {
