@@ -4,6 +4,7 @@ module.exports = {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class',   // ← Added this line (required for dark/bright toggle)
   theme: {
     extend: {
       colors: {
