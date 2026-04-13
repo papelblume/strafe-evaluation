@@ -233,6 +233,8 @@ function Stats(props) {
 function WASD() {
   const [aPressed, setAPressed] = createSignal(false);
   const [dPressed, setDPressed] = createSignal(false);
+  const [wPressed, setWPressed] = createSignal(false);
+  const [sPressed, setSPressed] = createSignal(false);
 
   createEffect(() => {
     let unlistenA, unlistenD, unlistenReleaseA, unlistenReleaseD;
@@ -254,6 +256,7 @@ function WASD() {
     setupListeners();
   });
 
+  // Simulate functions (unchanged)
   async function simulateEarly() {
     setAPressed(true);
     setTimeout(() => setAPressed(false), 500);
@@ -284,12 +287,25 @@ function WASD() {
       </div>
 
       <div className="flex justify-center basis-0 flex-grow">
-        <div className="select-none pointer-events-none text-dark dark:text-bright flex justify-between w-40 text-center font-bold text-xl">
-          <div className={`flex border border-dark/20 dark:border-bright/20 border-r border-b shadow-lg border-b-dark/50 dark:border-b-bright/50 w-16 h-16 rounded-md justify-center items-center duration-75 transition-all ${aPressed() ? "bg-accent/70 scale-100 translate-y-[4px]" : "bg-secondary/10 dark:bg-secondary/20"}`}>
-            <p>A</p>
+        <div className="select-none pointer-events-none text-dark dark:text-bright flex flex-col items-center gap-1 font-bold text-xl">
+          {/* W key */}
+          <div className={`flex border border-dark/20 dark:border-bright/20 border-b shadow-lg w-16 h-16 rounded-md justify-center items-center duration-75 transition-all ${wPressed() ? "bg-accent/70 scale-100 translate-y-[2px]" : "bg-secondary/10 dark:bg-secondary/20"}`}>
+            W
           </div>
-          <div className={`flex border border-dark/20 dark:border-bright/20 border-l border-b shadow-lg border-b-dark/50 dark:border-b-bright/50 w-16 h-16 rounded-md justify-center items-center duration-75 transition-all ${dPressed() ? "bg-accent/70 translate-y-[4px]" : "bg-secondary/10 dark:bg-secondary/20"}`}>
-            <p>D</p>
+
+          {/* A and D row */}
+          <div className="flex gap-1">
+            <div className={`flex border border-dark/20 dark:border-bright/20 border-r border-b shadow-lg w-16 h-16 rounded-md justify-center items-center duration-75 transition-all ${aPressed() ? "bg-accent/70 scale-100 translate-y-[4px]" : "bg-secondary/10 dark:bg-secondary/20"}`}>
+              A
+            </div>
+            <div className={`flex border border-dark/20 dark:border-bright/20 border-l border-b shadow-lg w-16 h-16 rounded-md justify-center items-center duration-75 transition-all ${dPressed() ? "bg-accent/70 translate-y-[4px]" : "bg-secondary/10 dark:bg-secondary/20"}`}>
+              D
+            </div>
+          </div>
+
+          {/* S key */}
+          <div className={`flex border border-dark/20 dark:border-bright/20 border-t shadow-lg w-16 h-16 rounded-md justify-center items-center duration-75 transition-all ${sPressed() ? "bg-accent/70 scale-100 translate-y-[2px]" : "bg-secondary/10 dark:bg-secondary/20"}`}>
+            S
           </div>
         </div>
       </div>
@@ -305,21 +321,43 @@ function App() {
   const [lateStrafes, setLateStrafes] = createSignal([]);
   const [perfectStrafes, setPerfectStrafes] = createSignal([]);
 
+  // W and S state (for ignoring strafes)
+  const [wPressed, setWPressed] = createSignal(false);
+  const [sPressed, setSPressed] = createSignal(false);
+
   // Theme state
   const [isDark, setIsDark] = createSignal(false);
 
-  // Load saved theme on mount
+  // Load saved theme
   onMount(() => {
     const saved = localStorage.getItem('theme');
     if (saved) {
       setIsDark(saved === 'dark');
     } else {
-      // Respect system preference if no saved theme
       setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
     }
+
+    // Global keyboard listeners for W and S
+    const handleKeyDown = (e) => {
+      if (e.key.toLowerCase() === 'w') setWPressed(true);
+      if (e.key.toLowerCase() === 's') setSPressed(true);
+    };
+
+    const handleKeyUp = (e) => {
+      if (e.key.toLowerCase() === 'w') setWPressed(false);
+      if (e.key.toLowerCase() === 's') setSPressed(false);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    onCleanup(() => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    });
   });
 
-  // Apply dark class to html element
+  // Apply dark class
   createEffect(() => {
     if (isDark()) {
       document.documentElement.classList.add('dark');
@@ -339,12 +377,18 @@ function App() {
     setTotalStrafes([]);
   }
 
-  // Listen for strafe events from Tauri
+  // Strafe listener with W/S ignore logic
   createEffect(() => {
     let unlistenStrafe;
 
     const setupListeners = async () => {
       unlistenStrafe = await listen('strafe', (event) => {
+        // Ignore strafe if W or S is currently pressed
+        if (wPressed() || sPressed()) {
+          console.log("Strafe ignored because W or S is pressed");
+          return;
+        }
+
         const strafe = {
           type: event.payload.strafe_type,
           duration: event.payload.duration
@@ -416,8 +460,8 @@ function App() {
         </div>
       </div>
 
-      {/* WASD Area */}
-      <div className="h-32 mb-4 flex items-center justify-center">
+      {/* WASD Area (now includes W and S) */}
+      <div className="h-40 mb-4 flex items-center justify-center">
         <WASD />
       </div>
 
