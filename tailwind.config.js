@@ -1,18 +1,19 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
-}
-
-.wasd-button {
-  @apply shadow-md font-medium px-3 w-20 py-1 my-1 cursor-pointer rounded-md hover:scale-105
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        'primary': '#88a56f',
+        'accent': '#8cb5a8',
+        'secondary': '#a5c5ae',
+        'dark': '#3a3f36',
+        'bright': '#f4f4f4',
+      },
+    },
+  },
+  plugins: [],
 }
