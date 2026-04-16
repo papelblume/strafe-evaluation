@@ -344,23 +344,6 @@ function App() {
     setTotalStrafes([]);
   }
 
-  // LMB listener (shared state)
-  createEffect(() => {
-    let unlistenLMBPress, unlistenLMBRelease;
-
-    const setupLMB = async () => {
-      unlistenLMBPress = await listen('lmb-pressed', () => setLmbPressed(true));
-      unlistenLMBRelease = await listen('lmb-released', () => setLmbPressed(false));
-    };
-
-    onCleanup(() => {
-      if (typeof unlistenLMBPress === "function") unlistenLMBPress();
-      if (typeof unlistenLMBRelease === "function") unlistenLMBRelease();
-    });
-
-    setupLMB();
-  });
-
   // Strafe listener - now respects LMB toggle
   createEffect(() => {
     let unlistenStrafe;
