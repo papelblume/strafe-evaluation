@@ -16,30 +16,19 @@ struct Payload {
     lmb_pressed: bool,        // ← NEW: tell frontend if LMB was pressed
 }
 
-fn eval_understrafe(elapsed: Duration, released_time: &mut Option<SystemTime>, app: AppHandle) {
+fn eval_understrafe(elapsed: Duration, released_time: &mut Option<SystemTime>, app: AppHandle, both_pressed_time: &mut Option<SystemTime>) {
     let time_passed = elapsed.as_micros();
-    let lmb_pressed = LeftButton.is_pressed();   // ← NEW
+    let lmb_pressed = LeftButton.is_pressed();
 
     if time_passed < (200 * 1000) && time_passed >= (100 * 1000) {
-        app.emit_all(
-            "strafe",
-            Payload {
-                strafe_type: "Late".into(),
-                duration: time_passed,
-                lmb_pressed,
-            },
-        )
-        .unwrap();
+        // Late
+        app.emit_all("strafe", Payload { strafe_type: "Late".into(), duration: time_passed, lmb_pressed })?;
     } else if time_passed < 100 * 1000 {
-        app.emit_all(
-            "strafe",
-            Payload {
-                strafe_type: "Perfect".into(),
-                duration: time_passed,
-                lmb_pressed: true, // Perfects always count
-            },
-        )
-        .unwrap();
+        // Perfect
+        app.emit_all("strafe", Payload { strafe_type: "Perfect".into(), duration: time_passed, lmb_pressed: true })?;
+        
+        // NEW: If we just did a perfect understrafe, cancel any pending overstrafe
+        *both_pressed_time = None;
     }
     *released_time = None;
 }
@@ -84,6 +73,7 @@ fn main() {
                 let mut both_pressed_time: Option<SystemTime> = None;
                 let mut right_released_time: Option<SystemTime> = None;
                 let mut left_released_time: Option<SystemTime> = None;
+				let mut ignore_overstrafe_until: Option<SystemTime> = None;
 
                 let is_azerty = is_azerty_layout();
 
@@ -129,7 +119,7 @@ fn main() {
                         if !w_pressed && !s_pressed {
                             if let Some(x) = right_released_time {
                                 if let Ok(elapsed) = x.elapsed() {
-                                    eval_understrafe(elapsed, &mut right_released_time, handle.clone());
+                                    eval_understrafe(elapsed, &mut right_released_time, handle.clone(), &mut both_pressed_time);
                                 }
                             }
                         }
@@ -143,7 +133,7 @@ fn main() {
                         if !w_pressed && !s_pressed {
                             if let Some(x) = left_released_time {
                                 if let Ok(elapsed) = x.elapsed() {
-                                    eval_understrafe(elapsed, &mut left_released_time, handle.clone());
+                                    eval_understrafe(elapsed, &mut left_released_time, handle.clone(), &mut both_pressed_time);
                                 }
                             }
                         }
