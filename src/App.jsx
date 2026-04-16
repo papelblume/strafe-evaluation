@@ -59,30 +59,40 @@ function getStats(duration_array) {
   };
 }
 
+// Updated to handle negative values for Early strafes
 function getOccurance(duration_array) {
   if (!duration_array || duration_array.length === 0) {
-    return new Array(41).fill(0);
+    return new Array(81).fill(0); // Expanded to support negative side
   }
 
-  let out = new Array(41).fill(0);
+  let out = new Array(81).fill(0);
 
   duration_array.forEach(x => {
-    let n = Math.ceil(Math.abs(x) / 5000);   // use abs for Late
-    if (n < out.length) out[n] += 1;
+    // For Early (negative): we bin from -200ms to 0
+    // For Late (positive): 0 to 200ms
+    let n;
+    if (x < 0) {
+      n = Math.floor(Math.abs(x) / 5000);           // negative side: 0 to 40
+      if (n < 40) out[40 - n] += 1;                 // mirror to left side
+    } else {
+      n = Math.ceil(x / 5000);                      // positive side: 0 to 40
+      if (n < 40) out[40 + n] += 1;
+    }
   });
 
   return out;
 }
 
 const MyChart = (props) => {
-  const labels = Array.from({ length: 201 / 5 + 1 }, (_, i) => i * 5);
+  // Labels now go from -200ms to +200ms in 5ms steps
+  const labels = Array.from({ length: 81 }, (_, i) => (i - 40) * 5);
 
   const [chartData, setChartData] = createSignal({
     labels: labels,
     datasets: [
-      { label: 'Early', data: getOccurance([]), borderRadius: 5, backgroundColor: "#a5c5ae" },
-      { label: 'Late', data: getOccurance([]), borderRadius: 5, backgroundColor: "#8cb5a8" },
-      { label: 'Perfect', data: [0], borderRadius: 5, backgroundColor: "#b5ac8c" },
+      { label: 'Early', data: getOccurance([]), borderRadius: 5, backgroundColor: "#8cb5a8" },
+      { label: 'Late', data: getOccurance([]), borderRadius: 5, backgroundColor: "#a5c5ae" },
+      { label: 'Perfect', data: getOccurance([]), borderRadius: 5, backgroundColor: "#b5ac8c" },
     ],
   });
 
@@ -96,9 +106,9 @@ const MyChart = (props) => {
     setChartData({
       labels: labels,
       datasets: [
-        { label: 'Early', data: getOccurance(earlyStrafes), borderRadius: 5, backgroundColor: "#a5c5ae" },
-        { label: 'Late', data: getOccurance(lateStrafes), borderRadius: 5, backgroundColor: "#8cb5a8" },
-        { label: 'Perfect', data: [perfectStrafes.length], borderRadius: 5, backgroundColor: "#b5ac8c" },
+        { label: 'Early', data: getOccurance(earlyStrafes), borderRadius: 5, backgroundColor: "#8cb5a8" },
+        { label: 'Late', data: getOccurance(lateStrafes), borderRadius: 5, backgroundColor: "#a5c5ae" },
+        { label: 'Perfect', data: getOccurance(perfectStrafes), borderRadius: 5, backgroundColor: "#b5ac8c" },
       ],
     });
   });
@@ -132,6 +142,7 @@ const MyChart = (props) => {
   );
 };
 
+// Stats and WASD components remain unchanged
 function Stats(props) {
   const [stats, setStats] = createSignal({
     alls: getStats([]),
@@ -242,18 +253,18 @@ function WASD() {
   });
 
   async function simulateEarly() {
-    setAPressed(true);
-    setTimeout(() => setAPressed(false), 500);
-    setTimeout(() => setDPressed(true), 850);
-    setTimeout(() => setDPressed(false), 1350);
-  }
+  setAPressed(true);
+  setTimeout(() => setDPressed(true), 500);   // overlap = now Early
+  setTimeout(() => setAPressed(false), 850);
+  setTimeout(() => setDPressed(false), 1350);
+}
 
   async function simulateLate() {
-    setAPressed(true);
-    setTimeout(() => setDPressed(true), 500);
-    setTimeout(() => setAPressed(false), 850);
-    setTimeout(() => setDPressed(false), 1350);
-  }
+  setAPressed(true);
+  setTimeout(() => setAPressed(false), 500);
+  setTimeout(() => setDPressed(true), 850);   // gap = now Late
+  setTimeout(() => setDPressed(false), 1350);
+}
 
   async function simulatePerfect() {
     const delay = Math.floor(Math.random() * 81); // 0–80ms for perfect feel
@@ -408,8 +419,7 @@ function App() {
       <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3">
         <For each={totalStrafes()}>
           {(strafe) => (
-            <div className={`flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1
-              ${strafe.type === "Late" ? "text-red-500 dark:text-red-400" : ""}`}>
+            <div className={"flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1"}>
               <p className="font-bold text-center text-sm">{strafe.type}</p>
               <p className="text-center text-sm">{draw_time(strafe.duration)}</p>
             </div>
