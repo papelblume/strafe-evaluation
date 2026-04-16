@@ -151,15 +151,31 @@ fn main() {
                     // ============================================================
 
                     // ==================== STRAFE EVALUATION ====================
+                    // Both A and D pressed → start timing overlap
                     if left_pressed && right_pressed && both_pressed_time.is_none() {
                         both_pressed_time = Some(SystemTime::now());
                     }
-
+                    
+                    // One of them released → evaluate overstrafe (Early)
                     if (!left_pressed || !right_pressed) && both_pressed_time.is_some() {
                         if let Some(start) = both_pressed_time {
                             if let Ok(elapsed) = start.elapsed() {
                                 if !w_pressed && !s_pressed {
-                                    eval_overstrafe(elapsed, &mut both_pressed_time, handle.clone());
+                                    // ← NEW: Skip Early if the strafe was already classified as Perfect/Late very recently
+                                    // This prevents the overlap detection from firing immediately after a good understrafe
+                                    let recently_classified = if let Some(rt) = right_released_time {
+                                        if let Ok(t) = rt.elapsed() { t.as_millis() < 50 } else { false }
+                                    } else if let Some(lt) = left_released_time {
+                                        if let Ok(t) = lt.elapsed() { t.as_millis() < 50 } else { false }
+                                    } else {
+                                        false
+                                    };
+                    
+                                    if !recently_classified {
+                                        eval_overstrafe(elapsed, &mut both_pressed_time, handle.clone());
+                                    } else {
+                                        both_pressed_time = None; // silently ignore to avoid double classification
+                                    }
                                 } else {
                                     both_pressed_time = None;
                                 }
