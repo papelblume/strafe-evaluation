@@ -2,7 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use inputbot::KeybdKey::*;
-use inputbot::MouseButton::LeftButton;  // ← Added for LMB
+use inputbot::MouseButton::LeftButton; // ← NEW
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
 use tauri::AppHandle;
@@ -13,16 +13,20 @@ use winapi::um::winuser::GetKeyboardLayout;
 struct Payload {
     strafe_type: String,
     duration: u128,
+    lmb_pressed: bool,        // ← NEW: tell frontend if LMB was pressed
 }
 
 fn eval_understrafe(elapsed: Duration, released_time: &mut Option<SystemTime>, app: AppHandle) {
     let time_passed = elapsed.as_micros();
+    let lmb_pressed = LeftButton.is_pressed();   // ← NEW
+
     if time_passed < (200 * 1000) && time_passed >= (100 * 1000) {
         app.emit_all(
             "strafe",
             Payload {
                 strafe_type: "Late".into(),
                 duration: time_passed,
+                lmb_pressed,
             },
         )
         .unwrap();
@@ -32,6 +36,7 @@ fn eval_understrafe(elapsed: Duration, released_time: &mut Option<SystemTime>, a
             Payload {
                 strafe_type: "Perfect".into(),
                 duration: time_passed,
+                lmb_pressed: true, // Perfects always count
             },
         )
         .unwrap();
@@ -41,12 +46,15 @@ fn eval_understrafe(elapsed: Duration, released_time: &mut Option<SystemTime>, a
 
 fn eval_overstrafe(elapsed: Duration, both_pressed_time: &mut Option<SystemTime>, app: AppHandle) {
     let time_passed = elapsed.as_micros();
+    let lmb_pressed = LeftButton.is_pressed();   // ← NEW
+
     if time_passed < (200 * 1000) {
         app.emit_all(
             "strafe",
             Payload {
                 strafe_type: "Early".into(),
                 duration: time_passed,
+                lmb_pressed,
             },
         )
         .unwrap();
@@ -72,7 +80,6 @@ fn main() {
                 let mut right_pressed = false;
                 let mut w_pressed = false;
                 let mut s_pressed = false;
-                let mut lmb_pressed = false;        // ← NEW: LMB state
 
                 let mut both_pressed_time: Option<SystemTime> = None;
                 let mut right_released_time: Option<SystemTime> = None;
@@ -81,35 +88,14 @@ fn main() {
                 let is_azerty = is_azerty_layout();
 
                 loop {
-                    // Tickrate
                     sleep(Duration::from_millis(1));
 
                     // ==================== W & S KEY DETECTION ====================
-                    if w_pressed && !WKey.is_pressed() {
-                        w_pressed = false;
-                    }
-                    if s_pressed && !SKey.is_pressed() {
-                        s_pressed = false;
-                    }
+                    if w_pressed && !WKey.is_pressed() { w_pressed = false; }
+                    if s_pressed && !SKey.is_pressed() { s_pressed = false; }
 
-                    if !w_pressed && WKey.is_pressed() {
-                        w_pressed = true;
-                    }
-                    if !s_pressed && SKey.is_pressed() {
-                        s_pressed = true;
-                    }
-                    // ============================================================
-
-                    // ==================== LMB DETECTION ====================   ← NEW
-                    if lmb_pressed && !LeftButton.is_pressed() {
-                        lmb_pressed = false;
-                        let _ = handle.emit_all("lmb-released", ());
-                    }
-
-                    if !lmb_pressed && LeftButton.is_pressed() {
-                        lmb_pressed = true;
-                        let _ = handle.emit_all("lmb-pressed", ());
-                    }
+                    if !w_pressed && WKey.is_pressed() { w_pressed = true; }
+                    if !s_pressed && SKey.is_pressed() { s_pressed = true; }
                     // ============================================================
 
                     // ==================== A & D KEY DETECTION ====================
@@ -131,7 +117,7 @@ fn main() {
                         left_released_time = Some(SystemTime::now());
                     }
 
-                    // A pressed (supports AZERTY Q)
+                    // A pressed
                     if ((!is_azerty && AKey.is_pressed())
                         || (is_azerty && QKey.is_pressed())
                         || LeftKey.is_pressed())
@@ -140,7 +126,6 @@ fn main() {
                         left_pressed = true;
                         let _ = handle.emit_all("a-pressed", ());
 
-                        // Only evaluate understrafe if W and S are not pressed
                         if !w_pressed && !s_pressed {
                             if let Some(x) = right_released_time {
                                 if let Ok(elapsed) = x.elapsed() {
@@ -155,7 +140,6 @@ fn main() {
                         right_pressed = true;
                         let _ = handle.emit_all("d-pressed", ());
 
-                        // Only evaluate understrafe if W and S are not pressed
                         if !w_pressed && !s_pressed {
                             if let Some(x) = left_released_time {
                                 if let Ok(elapsed) = x.elapsed() {
@@ -167,20 +151,17 @@ fn main() {
                     // ============================================================
 
                     // ==================== STRAFE EVALUATION ====================
-                    // Both A and D pressed → start timing overlap
                     if left_pressed && right_pressed && both_pressed_time.is_none() {
                         both_pressed_time = Some(SystemTime::now());
                     }
 
-                    // One of them released → evaluate overstrafe (Early)
                     if (!left_pressed || !right_pressed) && both_pressed_time.is_some() {
                         if let Some(start) = both_pressed_time {
                             if let Ok(elapsed) = start.elapsed() {
-                                // Only emit strafe event if W and S are NOT pressed
                                 if !w_pressed && !s_pressed {
                                     eval_overstrafe(elapsed, &mut both_pressed_time, handle.clone());
                                 } else {
-                                    both_pressed_time = None; // silently reset, no event
+                                    both_pressed_time = None;
                                 }
                             }
                         }
