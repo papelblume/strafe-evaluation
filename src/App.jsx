@@ -387,6 +387,7 @@ function App() {
           >
             {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
           </button>
+        </div>
       </div>
 
       {/* Main Content */}
