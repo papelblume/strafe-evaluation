@@ -59,31 +59,21 @@ function getStats(duration_array) {
   };
 }
 
-// Updated to handle negative values for Early strafes
-// Updated for 2ms steps: range -200ms to +200ms (201 bins)
 function getOccurance(duration_array) {
   if (!duration_array || duration_array.length === 0) {
-    return new Array(201).fill(0);
+    return new Array(101).fill(0);
   }
 
-  let out = new Array(201).fill(0);
+  let out = new Array(101).fill(0);
 
   duration_array.forEach(x => {
-    let ms = Math.abs(x) / 1000;                    // convert µs → ms
-    let bin;
-
+    let n;
     if (x < 0) {
-      // Early (negative side): bin 0 = -200ms, bin 100 = 0ms
-      bin = Math.floor(ms / 2);
-      if (bin <= 100) {
-        out[100 - bin] += 1;
-      }
+      n = Math.floor(Math.abs(x) / 5000);
+      if (n < 40) out[40 - n] += 1;
     } else {
-      // Late & Perfect (positive side): bin 100 = 0ms, bin 200 = +200ms
-      bin = Math.ceil(ms / 2);
-      if (bin <= 100) {
-        out[100 + bin] += 1;
-      }
+      n = Math.ceil(x / 5000);
+      if (n < 40) out[40 + n] += 1;
     }
   });
 
@@ -91,8 +81,7 @@ function getOccurance(duration_array) {
 }
 
 const MyChart = (props) => {
-  // Labels now go from -200ms to +200ms in 2ms steps (201 points total)
-  const labels = Array.from({ length: 201 }, (_, i) => (i - 100) * 2);
+  const labels = Array.from({ length: 101 }, (_, i) => (i - 50) * 4);
 
   const [chartData, setChartData] = createSignal({
     labels: labels,
@@ -126,14 +115,7 @@ const MyChart = (props) => {
     scales: {
       x: { 
         stacked: true,
-        ticks: { 
-          color: 'var(--chart-text)', 
-          font: { size: 11 },           // slightly smaller font for denser labels
-          maxTicksLimit: 21,            // show every ~20ms label to avoid clutter
-          callback: function(value, index, ticks) {
-            return value + " ms";       // optional: show "ms" on axis
-          }
-        },
+        ticks: { color: 'var(--chart-text)', font: { size: 12 } },
         grid: { color: 'var(--chart-grid)' }
       },
       y: { 
@@ -156,7 +138,6 @@ const MyChart = (props) => {
   );
 };
 
-// Stats and WASD components remain unchanged
 function Stats(props) {
   const [stats, setStats] = createSignal({
     alls: getStats([]),
@@ -245,15 +226,21 @@ function Stats(props) {
 function WASD() {
   const [aPressed, setAPressed] = createSignal(false);
   const [dPressed, setDPressed] = createSignal(false);
+  const [lmbPressed, setLmbPressed] = createSignal(false);   // ← NEW
 
   createEffect(() => {
     let unlistenA, unlistenD, unlistenReleaseA, unlistenReleaseD;
+    let unlistenLMB, unlistenLMBRelease;   // ← NEW
 
     const setupListeners = async () => {
       unlistenA = await listen('a-pressed', () => setAPressed(true));
       unlistenD = await listen('d-pressed', () => setDPressed(true));
       unlistenReleaseA = await listen('a-released', () => setAPressed(false));
       unlistenReleaseD = await listen('d-released', () => setDPressed(false));
+
+      // LMB listeners
+      unlistenLMB = await listen('lmb-pressed', () => setLmbPressed(true));
+      unlistenLMBRelease = await listen('lmb-released', () => setLmbPressed(false));
     };
 
     onCleanup(() => {
@@ -261,27 +248,29 @@ function WASD() {
       if (typeof unlistenD === "function") unlistenD();
       if (typeof unlistenReleaseA === "function") unlistenReleaseA();
       if (typeof unlistenReleaseD === "function") unlistenReleaseD();
+      if (typeof unlistenLMB === "function") unlistenLMB();
+      if (typeof unlistenLMBRelease === "function") unlistenLMBRelease();
     });
 
     setupListeners();
   });
 
   async function simulateEarly() {
-  setAPressed(true);
-  setTimeout(() => setDPressed(true), 500);   // overlap = now Early
-  setTimeout(() => setAPressed(false), 850);
-  setTimeout(() => setDPressed(false), 1350);
-}
+    setAPressed(true);
+    setTimeout(() => setDPressed(true), 500);
+    setTimeout(() => setAPressed(false), 850);
+    setTimeout(() => setDPressed(false), 1350);
+  }
 
   async function simulateLate() {
-  setAPressed(true);
-  setTimeout(() => setAPressed(false), 500);
-  setTimeout(() => setDPressed(true), 850);   // gap = now Late
-  setTimeout(() => setDPressed(false), 1350);
-}
+    setAPressed(true);
+    setTimeout(() => setAPressed(false), 500);
+    setTimeout(() => setDPressed(true), 850);
+    setTimeout(() => setDPressed(false), 1350);
+  }
 
   async function simulatePerfect() {
-    const delay = Math.floor(Math.random() * 81); // 0–80ms for perfect feel
+    const delay = Math.floor(Math.random() * 81);
     setAPressed(true);
     setTimeout(() => setAPressed(false), 500);
     setTimeout(() => setDPressed(true), 500 + delay);
@@ -290,19 +279,28 @@ function WASD() {
 
   return (
     <div className="flex group justify-center items-center w-full h-full">
+      {/* Left buttons */}
       <div className="flex flex-col basis-0 flex-grow items-end opacity-0 -translate-x-2 duration-200 group-hover:opacity-100 group-hover:translate-x-0">
         <button className="wasd-button text-white bg-secondary" onClick={simulateEarly}>Early</button>
         <button className="wasd-button text-white bg-accent" onClick={simulateLate}>Late</button>
         <button className="wasd-button text-white bg-[#b5ac8c]" onClick={simulatePerfect}>Perfect</button>
       </div>
 
-      <div className="flex justify-center basis-0 flex-grow">
+      {/* WASD + LMB Row */}
+      <div className="flex justify-center basis-0 flex-grow gap-8">
         <div className="select-none pointer-events-none text-dark dark:text-bright flex justify-between w-40 text-center font-bold text-xl">
           <div className={`flex border border-dark/20 dark:border-bright/20 border-r border-b shadow-lg border-b-dark/50 dark:border-b-bright/50 w-16 h-16 rounded-md justify-center items-center duration-75 transition-all ${aPressed() ? "bg-accent/70 scale-100 translate-y-[4px]" : "bg-secondary/10 dark:bg-secondary/20"}`}>
             <p>A</p>
           </div>
           <div className={`flex border border-dark/20 dark:border-bright/20 border-l border-b shadow-lg border-b-dark/50 dark:border-b-bright/50 w-16 h-16 rounded-md justify-center items-center duration-75 transition-all ${dPressed() ? "bg-accent/70 translate-y-[4px]" : "bg-secondary/10 dark:bg-secondary/20"}`}>
             <p>D</p>
+          </div>
+        </div>
+
+        {/* LMB Indicator - on the right side of A/D */}
+        <div className="flex items-center">
+          <div className={`flex border border-dark/20 dark:border-bright/20 border-b shadow-lg border-b-dark/50 dark:border-b-bright/50 w-16 h-16 rounded-md justify-center items-center duration-75 transition-all ${lmbPressed() ? "bg-red-500/80 scale-100 translate-y-[4px]" : "bg-secondary/10 dark:bg-secondary/20"}`}>
+            <p className="font-bold text-lg">LMB</p>
           </div>
         </div>
       </div>
@@ -317,6 +315,9 @@ function App() {
   const [earlyStrafes, setEarlyStrafes] = createSignal([]);
   const [lateStrafes, setLateStrafes] = createSignal([]);
   const [perfectStrafes, setPerfectStrafes] = createSignal([]);
+
+  const [onlyWithLMB, setOnlyWithLMB] = createSignal(false);
+  const [lmbPressed, setLmbPressed] = createSignal(false);   // Shared with WASD
 
   const [isDark, setIsDark] = createSignal(false);
 
@@ -345,7 +346,25 @@ function App() {
     setTotalStrafes([]);
   }
 
+  // LMB listener (shared state)
+  createEffect(() => {
+    let unlistenLMBPress, unlistenLMBRelease;
+
+    const setupLMB = async () => {
+      unlistenLMBPress = await listen('lmb-pressed', () => setLmbPressed(true));
+      unlistenLMBRelease = await listen('lmb-released', () => setLmbPressed(false));
+    };
+
+    onCleanup(() => {
+      if (typeof unlistenLMBPress === "function") unlistenLMBPress();
+      if (typeof unlistenLMBRelease === "function") unlistenLMBRelease();
+    });
+
+    setupLMB();
+  });
+
   // Strafe listener - Late times are negative
+  // Only count Early/Late strafes when "Only during LMB" is enabled AND LMB is pressed
   createEffect(() => {
     let unlistenStrafe;
 
@@ -360,19 +379,27 @@ function App() {
 
         const strafe = { type, duration };
 
-        switch (type) {
-          case "Early":
-            setEarlyStrafes(a => [duration, ...a]);
-            break;
-          case "Late":
-            setLateStrafes(a => [duration, ...a]);
-            break;
-          case "Perfect":
-            setPerfectStrafes(a => [duration, ...a]);
-            break;
-        }
+        // Decide whether to count this strafe
+        const shouldCount = 
+          type === "Perfect" || 
+          !onlyWithLMB() || 
+          lmbPressed();
 
-        setTotalStrafes(a => [strafe, ...a]);
+        if (shouldCount) {
+          switch (type) {
+            case "Early":
+              setEarlyStrafes(a => [duration, ...a]);
+              break;
+            case "Late":
+              setLateStrafes(a => [duration, ...a]);
+              break;
+            case "Perfect":
+              setPerfectStrafes(a => [duration, ...a]);
+              break;
+          }
+
+          setTotalStrafes(a => [strafe, ...a]);
+        }
       });
     };
 
@@ -396,12 +423,30 @@ function App() {
           </h1>
         </div>
 
-        <button
-          onClick={toggleTheme}
-          class="px-6 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95"
-        >
-          {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
-        </button>
+        <div className="flex items-center gap-6">
+          {/* Only during LMB Toggle */}
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <div className="relative">
+              <input
+                type="checkbox"
+                checked={onlyWithLMB()}
+                onChange={(e) => setOnlyWithLMB(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-300 dark:bg-gray-700 rounded-full peer peer-checked:bg-primary transition-colors"></div>
+              <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+            </div>
+            <span className="text-sm font-medium">Only during LMB</span>
+          </label>
+
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            class="px-6 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95"
+          >
+            {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
+          </button>
+        </div>
       </div>
 
       {/* Main Content */}
