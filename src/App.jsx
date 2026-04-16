@@ -336,7 +336,7 @@ function App() {
         const { strafe_type: type, duration, lmb_pressed } = event.payload;
 
         let finalDuration = duration;
-        if (type === "Late") {
+        if (type === "Early") {
           finalDuration = -duration;
         }
 
