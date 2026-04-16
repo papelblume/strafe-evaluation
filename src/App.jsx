@@ -224,9 +224,30 @@ function WASD() {
     setupListeners();
   });
 
-  async function simulateEarly() { /* ... unchanged */ }
-  async function simulateLate() { /* ... unchanged */ }
-  async function simulatePerfect() { /* ... unchanged */ }
+   // Simulate key press patterns f
+  async function simulateEarly() {
+    setAPressed(true);
+    
+    setTimeout(() => setAPressed(false), 500);
+    setTimeout(() => setDPressed(true), 850);
+    setTimeout(() => setDPressed(false), 1350);
+  }
+  
+  async function simulateLate() {
+    setAPressed(true);
+    
+    setTimeout(() => setDPressed(true), 500);
+    setTimeout(() => setAPressed(false), 850);
+    setTimeout(() => setDPressed(false), 1350);
+  }
+  
+  async function simulatePerfect() {
+    setAPressed(true);
+    
+    setTimeout(() => setDPressed(true), 500);
+    setTimeout(() => setAPressed(false), 500);
+    setTimeout(() => setDPressed(false), 1000);
+  }
 
   return (
     <div className="flex group justify-center items-center w-full h-full">
@@ -358,7 +379,7 @@ function App() {
           <Stats earlyStrafes={earlyStrafes()} lateStrafes={lateStrafes()} perfectStrafes={perfectStrafes()} />
         </div>
 
-        <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl">
+        <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 text-dark dark:text-bright rounded-xl p-4 shadow-xl">
           <MyChart earlyStrafes={earlyStrafes()} lateStrafes={lateStrafes()} perfectStrafes={perfectStrafes()} />
         </div>
       </div>
