@@ -60,23 +60,30 @@ function getStats(duration_array) {
 }
 
 // Updated to handle negative values for Early strafes
+// Updated for 2ms steps: range -200ms to +200ms (201 bins)
 function getOccurance(duration_array) {
   if (!duration_array || duration_array.length === 0) {
-    return new Array(81).fill(0); // Expanded to support negative side
+    return new Array(201).fill(0);
   }
 
-  let out = new Array(81).fill(0);
+  let out = new Array(201).fill(0);
 
   duration_array.forEach(x => {
-    // For Early (negative): we bin from -200ms to 0
-    // For Late (positive): 0 to 200ms
-    let n;
+    let ms = Math.abs(x) / 1000;                    // convert µs → ms
+    let bin;
+
     if (x < 0) {
-      n = Math.floor(Math.abs(x) / 5000);           // negative side: 0 to 40
-      if (n < 40) out[40 - n] += 1;                 // mirror to left side
+      // Early (negative side): bin 0 = -200ms, bin 100 = 0ms
+      bin = Math.floor(ms / 2);
+      if (bin <= 100) {
+        out[100 - bin] += 1;
+      }
     } else {
-      n = Math.ceil(x / 5000);                      // positive side: 0 to 40
-      if (n < 40) out[40 + n] += 1;
+      // Late & Perfect (positive side): bin 100 = 0ms, bin 200 = +200ms
+      bin = Math.ceil(ms / 2);
+      if (bin <= 100) {
+        out[100 + bin] += 1;
+      }
     }
   });
 
@@ -84,8 +91,8 @@ function getOccurance(duration_array) {
 }
 
 const MyChart = (props) => {
-  // Labels now go from -200ms to +200ms in 5ms steps
-  const labels = Array.from({ length: 81 }, (_, i) => (i - 40) * 5);
+  // Labels now go from -200ms to +200ms in 2ms steps (201 points total)
+  const labels = Array.from({ length: 201 }, (_, i) => (i - 100) * 2);
 
   const [chartData, setChartData] = createSignal({
     labels: labels,
@@ -119,7 +126,14 @@ const MyChart = (props) => {
     scales: {
       x: { 
         stacked: true,
-        ticks: { color: 'var(--chart-text)', font: { size: 12 } },
+        ticks: { 
+          color: 'var(--chart-text)', 
+          font: { size: 11 },           // slightly smaller font for denser labels
+          maxTicksLimit: 21,            // show every ~20ms label to avoid clutter
+          callback: function(value, index, ticks) {
+            return value + " ms";       // optional: show "ms" on axis
+          }
+        },
         grid: { color: 'var(--chart-grid)' }
       },
       y: { 
