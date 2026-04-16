@@ -258,11 +258,7 @@ function App() {
   const [lateStrafes, setLateStrafes] = createSignal([]);
   const [perfectStrafes, setPerfectStrafes] = createSignal([]);
 
-  // New: Track W and S key state
-  const [wPressed, setWPressed] = createSignal(false);
-  const [sPressed, setSPressed] = createSignal(false);
-
-  // Theme state (unchanged)
+  // Theme state
   const [isDark, setIsDark] = createSignal(false);
 
   onMount(() => {
@@ -293,40 +289,12 @@ function App() {
     setTotalStrafes([]);
   }
 
-  // ====================== KEYBOARD LISTENERS (W & S) ======================
-  onMount(() => {
-    const handleKeyDown = (e) => {
-      if (e.key.toLowerCase() === 'w') setWPressed(true);
-      if (e.key.toLowerCase() === 's') setSPressed(true);
-    };
-
-    const handleKeyUp = (e) => {
-      if (e.key.toLowerCase() === 'w') setWPressed(false);
-      if (e.key.toLowerCase() === 's') setSPressed(false);
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    onCleanup(() => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    });
-  });
-  // =====================================================================
-
-  // Strafe listener with W/S ignore logic
+  // Strafe listener (now clean - no W/S ignore logic)
   createEffect(() => {
     let unlistenStrafe;
 
     const setupListeners = async () => {
       unlistenStrafe = await listen('strafe', (event) => {
-        // Ignore strafe if W or S is currently pressed
-        if (wPressed() || sPressed()) {
-          console.log("Strafe ignored because W or S is pressed");
-          return;
-        }
-
         const strafe = {
           type: event.payload.strafe_type,
           duration: event.payload.duration
@@ -395,7 +363,7 @@ function App() {
         </div>
       </div>
 
-      {/* WASD Area */}
+      {/* WASD Area - A/D visual only */}
       <div className="h-32 mb-4 flex items-center justify-center">
         <WASD />
       </div>
