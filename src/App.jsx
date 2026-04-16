@@ -61,10 +61,10 @@ function getStats(duration_array) {
 
 function getOccurance(duration_array) {
   if (!duration_array || duration_array.length === 0) {
-    return new Array(101).fill(0);
+    return new Array(81).fill(0);
   }
 
-  let out = new Array(101).fill(0);
+  let out = new Array(81).fill(0);
 
   duration_array.forEach(x => {
     let n;
@@ -293,18 +293,32 @@ function WASD() {
   );
 }
 
-// ... (imports remain the same)
-
 function App() {
   const [totalStrafes, setTotalStrafes] = createSignal([]);
   const [earlyStrafes, setEarlyStrafes] = createSignal([]);
   const [lateStrafes, setLateStrafes] = createSignal([]);
   const [perfectStrafes, setPerfectStrafes] = createSignal([]);
 
-  const [countOnlyLMB, setCountOnlyLMB] = createSignal(false);   // ← NEW
+  const [countOnlyLMB, setCountOnlyLMB] = createSignal(false);
   const [isDark, setIsDark] = createSignal(false);
 
-  // ... (theme logic unchanged)
+  onMount(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) setIsDark(saved === 'dark');
+    else setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
+  });
+
+  createEffect(() => {
+    if (isDark()) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  });
+
+  const toggleTheme = () => setIsDark(prev => !prev);
 
   function resetStrafes() {
     setEarlyStrafes([]);
@@ -313,7 +327,7 @@ function App() {
     setTotalStrafes([]);
   }
 
-  // Strafe listener - now respects LMB toggle
+  // Strafe listener - respects the "Count only on LMB" toggle
   createEffect(() => {
     let unlistenStrafe;
 
@@ -328,7 +342,8 @@ function App() {
 
         const strafe = { type, duration: finalDuration };
 
-        // Only count Early/Late if LMB is pressed OR toggle is disabled
+        // Only count Early/Late when LMB is pressed (or when the toggle is disabled)
+        // Perfect strafes are always counted
         const shouldCount = !countOnlyLMB() || lmb_pressed || type === "Perfect";
 
         if (shouldCount) {
@@ -370,15 +385,15 @@ function App() {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* NEW: LMB Toggle */}
-          <label className="flex items-center gap-2 cursor-pointer select-none">
+          {/* Count only on LMB toggle */}
+          <label className="flex items-center gap-2 cursor-pointer select-none text-sm">
             <input
               type="checkbox"
               checked={countOnlyLMB()}
               onChange={(e) => setCountOnlyLMB(e.target.checked)}
-              className="w-5 h-5 accent-primary"
+              className="w-5 h-5 accent-primary cursor-pointer"
             />
-            <span className="text-sm font-medium">Count only on LMB</span>
+            <span className="font-medium">Count only on LMB</span>
           </label>
 
           <button
@@ -402,11 +417,19 @@ function App() {
               Reset
             </button>
           </div>
-          <Stats earlyStrafes={earlyStrafes()} lateStrafes={lateStrafes()} perfectStrafes={perfectStrafes()} />
+          <Stats 
+            earlyStrafes={earlyStrafes()} 
+            lateStrafes={lateStrafes()} 
+            perfectStrafes={perfectStrafes()} 
+          />
         </div>
 
         <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl">
-          <MyChart earlyStrafes={earlyStrafes()} lateStrafes={lateStrafes()} perfectStrafes={perfectStrafes()} />
+          <MyChart 
+            earlyStrafes={earlyStrafes()} 
+            lateStrafes={lateStrafes()} 
+            perfectStrafes={perfectStrafes()} 
+          />
         </div>
       </div>
 
@@ -419,7 +442,7 @@ function App() {
       <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3">
         <For each={totalStrafes()}>
           {(strafe) => (
-            <div className={"flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1"}>
+            <div className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1">
               <p className="font-bold text-center text-sm">{strafe.type}</p>
               <p className="text-center text-sm">{draw_time(strafe.duration)}</p>
             </div>
