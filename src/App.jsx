@@ -316,9 +316,7 @@ function App() {
   const [lateStrafes, setLateStrafes] = createSignal([]);
   const [perfectStrafes, setPerfectStrafes] = createSignal([]);
 
-  const [onlyWithLMB, setOnlyWithLMB] = createSignal(false);
-  const [lmbPressed, setLmbPressed] = createSignal(false);   // Shared with WASD
-
+  const [countOnlyLMB, setCountOnlyLMB] = createSignal(false);   // ← NEW
   const [isDark, setIsDark] = createSignal(false);
 
   onMount(() => {
@@ -363,38 +361,34 @@ function App() {
     setupLMB();
   });
 
-  // Strafe listener - Late times are negative
-  // Only count Early/Late strafes when "Only during LMB" is enabled AND LMB is pressed
+  // Strafe listener - now respects LMB toggle
   createEffect(() => {
     let unlistenStrafe;
 
     const setupListeners = async () => {
       unlistenStrafe = await listen('strafe', (event) => {
-        let duration = event.payload.duration;
-        const type = event.payload.strafe_type;
+        const { strafe_type: type, duration, lmb_pressed } = event.payload;
 
+        let finalDuration = duration;
         if (type === "Late") {
-          duration = -duration;
+          finalDuration = -duration;
         }
 
-        const strafe = { type, duration };
+        const strafe = { type, duration: finalDuration };
 
-        // Decide whether to count this strafe
-        const shouldCount = 
-          type === "Perfect" || 
-          !onlyWithLMB() || 
-          lmbPressed();
+        // Only count Early/Late if LMB is pressed OR toggle is disabled
+        const shouldCount = !countOnlyLMB() || lmb_pressed || type === "Perfect";
 
         if (shouldCount) {
           switch (type) {
             case "Early":
-              setEarlyStrafes(a => [duration, ...a]);
+              setEarlyStrafes(a => [finalDuration, ...a]);
               break;
             case "Late":
-              setLateStrafes(a => [duration, ...a]);
+              setLateStrafes(a => [finalDuration, ...a]);
               break;
             case "Perfect":
-              setPerfectStrafes(a => [duration, ...a]);
+              setPerfectStrafes(a => [finalDuration, ...a]);
               break;
           }
 
@@ -423,23 +417,18 @@ function App() {
           </h1>
         </div>
 
-        <div className="flex items-center gap-6">
-          {/* Only during LMB Toggle */}
+        <div className="flex items-center gap-4">
+          {/* NEW: LMB Toggle */}
           <label className="flex items-center gap-2 cursor-pointer select-none">
-            <div className="relative">
-              <input
-                type="checkbox"
-                checked={onlyWithLMB()}
-                onChange={(e) => setOnlyWithLMB(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-300 dark:bg-gray-700 rounded-full peer peer-checked:bg-primary transition-colors"></div>
-              <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
-            </div>
-            <span className="text-sm font-medium">Only during LMB</span>
+            <input
+              type="checkbox"
+              checked={countOnlyLMB()}
+              onChange={(e) => setCountOnlyLMB(e.target.checked)}
+              className="w-5 h-5 accent-primary"
+            />
+            <span className="text-sm font-medium">Count only on LMB</span>
           </label>
 
-          {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
             class="px-6 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95"
