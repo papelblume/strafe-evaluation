@@ -2,7 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use inputbot::KeybdKey::*;
-use inputbot::MouseButton::LeftButton; // ← NEW
+use inputbot::MouseButton::LeftButton;
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
 use tauri::AppHandle;
@@ -13,17 +13,21 @@ use winapi::um::winuser::GetKeyboardLayout;
 struct Payload {
     strafe_type: String,
     duration: u128,
-    lmb_pressed: bool,        // ← NEW: tell frontend if LMB was pressed
+    lmb_pressed: bool,        // true = LMB was pressed at any time during the strafe
 }
 
 fn eval_understrafe(
     elapsed: Duration,
     released_time: &mut Option<SystemTime>,
     app: AppHandle,
-    both_pressed_time: &mut Option<SystemTime>
+    both_pressed_time: &mut Option<SystemTime>,
+    lmb_during: &mut bool,   // NEW: track if LMB was pressed during this understrafe
 ) {
     let time_passed = elapsed.as_micros();
-    let lmb_pressed = LeftButton.is_pressed();
+    let lmb_now = LeftButton.is_pressed();
+    if lmb_now {
+        *lmb_during = true;
+    }
 
     if time_passed < (200 * 1000) && time_passed >= (100 * 1000) {
         // Late
@@ -32,7 +36,7 @@ fn eval_understrafe(
             Payload {
                 strafe_type: "Late".into(),
                 duration: time_passed,
-                lmb_pressed,
+                lmb_pressed: *lmb_during,
             },
         );
     } else if time_passed < 100 * 1000 {
@@ -45,16 +49,23 @@ fn eval_understrafe(
                 lmb_pressed: true,
             },
         );
-        
-        // Cancel pending overstrafe for perfects
         *both_pressed_time = None;
     }
     *released_time = None;
+    *lmb_during = false;  // reset for next strafe
 }
 
-fn eval_overstrafe(elapsed: Duration, both_pressed_time: &mut Option<SystemTime>, app: AppHandle) {
+fn eval_overstrafe(
+    elapsed: Duration,
+    both_pressed_time: &mut Option<SystemTime>,
+    app: AppHandle,
+    lmb_during: &mut bool,   // NEW
+) {
     let time_passed = elapsed.as_micros();
-    let lmb_pressed = LeftButton.is_pressed();   // ← NEW
+    let lmb_now = LeftButton.is_pressed();
+    if lmb_now {
+        *lmb_during = true;
+    }
 
     if time_passed < (200 * 1000) {
         app.emit_all(
@@ -62,12 +73,13 @@ fn eval_overstrafe(elapsed: Duration, both_pressed_time: &mut Option<SystemTime>
             Payload {
                 strafe_type: "Early".into(),
                 duration: time_passed,
-                lmb_pressed,
+                lmb_pressed: *lmb_during,
             },
         )
         .unwrap();
     }
     *both_pressed_time = None;
+    *lmb_during = false;  // reset
 }
 
 fn is_azerty_layout() -> bool {
@@ -92,6 +104,8 @@ fn main() {
                 let mut both_pressed_time: Option<SystemTime> = None;
                 let mut right_released_time: Option<SystemTime> = None;
                 let mut left_released_time: Option<SystemTime> = None;
+
+                let mut lmb_during_strafe: bool = false;   // ← NEW: tracks LMB during current strafe window
 
                 let is_azerty = is_azerty_layout();
 
@@ -137,7 +151,7 @@ fn main() {
                         if !w_pressed && !s_pressed {
                             if let Some(x) = right_released_time {
                                 if let Ok(elapsed) = x.elapsed() {
-                                    eval_understrafe(elapsed, &mut right_released_time, handle.clone(), &mut both_pressed_time);
+                                    eval_understrafe(elapsed, &mut right_released_time, handle.clone(), &mut both_pressed_time, &mut lmb_during_strafe);
                                 }
                             }
                         }
@@ -151,30 +165,39 @@ fn main() {
                         if !w_pressed && !s_pressed {
                             if let Some(x) = left_released_time {
                                 if let Ok(elapsed) = x.elapsed() {
-                                    eval_understrafe(elapsed, &mut left_released_time, handle.clone(), &mut both_pressed_time);
+                                    eval_understrafe(elapsed, &mut left_released_time, handle.clone(), &mut both_pressed_time, &mut lmb_during_strafe);
                                 }
                             }
                         }
                     }
                     // ============================================================
 
-                    // ==================== STRAFE EVALUATION ====================
+                    // ==================== STRAFE EVALUATION (Early / Overlap) ====================
                     if left_pressed && right_pressed && both_pressed_time.is_none() {
                         both_pressed_time = Some(SystemTime::now());
+                        lmb_during_strafe = LeftButton.is_pressed(); // initial state
                     }
 
                     if (!left_pressed || !right_pressed) && both_pressed_time.is_some() {
                         if let Some(start) = both_pressed_time {
                             if let Ok(elapsed) = start.elapsed() {
                                 if !w_pressed && !s_pressed {
-                                    eval_overstrafe(elapsed, &mut both_pressed_time, handle.clone());
+                                    eval_overstrafe(elapsed, &mut both_pressed_time, handle.clone(), &mut lmb_during_strafe);
                                 } else {
                                     both_pressed_time = None;
+                                    lmb_during_strafe = false;
                                 }
                             }
                         }
                     }
                     // ============================================================
+
+                    // Continuously update LMB flag while a strafe window is active
+                    if (both_pressed_time.is_some() || left_released_time.is_some() || right_released_time.is_some()) {
+                        if LeftButton.is_pressed() {
+                            lmb_during_strafe = true;
+                        }
+                    }
                 }
             });
 
