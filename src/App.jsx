@@ -5,7 +5,10 @@ import { Bar } from 'solid-chartjs'
 import { listen } from '@tauri-apps/api/event'
 
 function draw_time(time) {
-  return (time / 1000).toFixed(0) + " ms"
+  if (time < 0) {
+    return "-" + (Math.abs(time) / 1000).toFixed(0) + " ms";
+  }
+  return (time / 1000).toFixed(0) + " ms";
 }
 
 function getMeanAndVar(arr) {
@@ -30,10 +33,12 @@ function getMeanAndVar(arr) {
 
 function getStats(duration_array) {
   if (duration_array.length < 1) {
-    return { median: 0, min: 0, max: 0, average: 0, std_deviation: 0, samples: 0 }
+    return { median: 0, min: 0, max: 0, average: 0, std_deviation: 0, samples: 0 };
   }
 
-  const sorted = Array.from(duration_array).sort((a, b) => a - b);
+  // For Late, we use absolute values for min/max/average/std calculations
+  const absValues = duration_array.map(Math.abs);
+  const sorted = [...absValues].sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
 
   let median;
@@ -43,7 +48,7 @@ function getStats(duration_array) {
     median = sorted[middle];
   }
 
-  let o = getMeanAndVar(duration_array);
+  let o = getMeanAndVar(absValues);   // use absolute values
 
   return {
     median: median,
@@ -52,7 +57,7 @@ function getStats(duration_array) {
     average: o.average,
     std_deviation: o.std_deviation,
     samples: duration_array.length
-  }
+  };
 }
 
 function getOccurance(duration_array) {
@@ -248,6 +253,14 @@ function WASD() {
     setTimeout(() => setAPressed(false), 500);
     setTimeout(() => setDPressed(false), 1000);
   }
+  
+  async function simulatePerfect() {
+	const delay = Math.floor(Math.random() * 101);		// random 0–100 ms
+	setAPressed(true);									// Release A after 500ms
+	setTimeout(() => setAPressed(false), 500);			// Press D after releasing A + small delay (0–100ms)
+	setTimeout(() => setDPressed(true), 500 + delay);	// Release D after holding it for ~500ms
+	setTimeout(() => setDPressed(false), 1000 + delay);	// total ~1000–1100ms
+}
 
   return (
     <div className="flex group justify-center items-center w-full h-full">
@@ -310,31 +323,49 @@ function App() {
     setTotalStrafes([]);
   }
 
-  // Strafe listener (now clean - no W/S ignore logic)
+  // Strafe listener
   createEffect(() => {
-    let unlistenStrafe;
+// Strafe listener - Late times are now negative
+createEffect(() => {
+  let unlistenStrafe;
 
-    const setupListeners = async () => {
-      unlistenStrafe = await listen('strafe', (event) => {
-        const strafe = {
-          type: event.payload.strafe_type,
-          duration: event.payload.duration
-        };
+  const setupListeners = async () => {
+    unlistenStrafe = await listen('strafe', (event) => {
+      let duration = event.payload.duration;
+      const type = event.payload.strafe_type;
 
-        switch (strafe.type) {
-          case "Early":
-            setEarlyStrafes(a => [strafe.duration, ...a]);
-            break;
-          case "Late":
-            setLateStrafes(a => [strafe.duration, ...a]);
-            break;
-          case "Perfect":
-            setPerfectStrafes(a => [strafe.duration, ...a]);
-            break;
-        }
-        setTotalStrafes(a => [strafe, ...a]);
-      });
-    };
+      // Make all Late strafe times negative
+      if (type === "Late") {
+        duration = -duration;
+      }
+
+      const strafe = {
+        type: type,
+        duration: duration
+      };
+
+      switch (type) {
+        case "Early":
+          setEarlyStrafes(a => [duration, ...a]);
+          break;
+        case "Late":
+          setLateStrafes(a => [duration, ...a]);
+          break;
+        case "Perfect":
+          setPerfectStrafes(a => [duration, ...a]);
+          break;
+      }
+
+      setTotalStrafes(a => [strafe, ...a]);
+    });
+  };
+
+  onCleanup(() => {
+    if (typeof unlistenStrafe === "function") unlistenStrafe();
+  });
+
+  setupListeners();
+});
 
     onCleanup(() => {
       if (typeof unlistenStrafe === "function") unlistenStrafe();
@@ -379,7 +410,7 @@ function App() {
           <Stats earlyStrafes={earlyStrafes()} lateStrafes={lateStrafes()} perfectStrafes={perfectStrafes()} />
         </div>
 
-        <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 text-dark dark:text-bright rounded-xl p-4 shadow-xl">
+        <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 text-black dark:text-white rounded-xl p-4 shadow-xl">
           <MyChart earlyStrafes={earlyStrafes()} lateStrafes={lateStrafes()} perfectStrafes={perfectStrafes()} />
         </div>
       </div>
