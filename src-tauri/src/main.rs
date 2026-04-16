@@ -16,7 +16,7 @@ struct Payload {
 
 fn eval_understrafe(elapsed: Duration, released_time: &mut Option<SystemTime>, app: AppHandle) {
     let time_passed = elapsed.as_micros();
-    if time_passed < (200 * 1000) && time_passed > (100 * 1000) {
+    if time_passed < (200 * 1000) && time_passed >= (100 * 1000) {
         app.emit_all(
             "strafe",
             Payload {
