@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use inputbot::KeybdKey::*;
+use inputbot::MouseButton::LeftButton;  // ← Added for LMB
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
 use tauri::AppHandle;
@@ -20,7 +21,7 @@ fn eval_understrafe(elapsed: Duration, released_time: &mut Option<SystemTime>, a
         app.emit_all(
             "strafe",
             Payload {
-                strafe_type: "Early".into(),
+                strafe_type: "Late".into(),
                 duration: time_passed,
             },
         )
@@ -44,7 +45,7 @@ fn eval_overstrafe(elapsed: Duration, both_pressed_time: &mut Option<SystemTime>
         app.emit_all(
             "strafe",
             Payload {
-                strafe_type: "Late".into(),
+                strafe_type: "Early".into(),
                 duration: time_passed,
             },
         )
@@ -71,6 +72,7 @@ fn main() {
                 let mut right_pressed = false;
                 let mut w_pressed = false;
                 let mut s_pressed = false;
+                let mut lmb_pressed = false;        // ← NEW: LMB state
 
                 let mut both_pressed_time: Option<SystemTime> = None;
                 let mut right_released_time: Option<SystemTime> = None;
@@ -95,6 +97,18 @@ fn main() {
                     }
                     if !s_pressed && SKey.is_pressed() {
                         s_pressed = true;
+                    }
+                    // ============================================================
+
+                    // ==================== LMB DETECTION ====================   ← NEW
+                    if lmb_pressed && !LeftButton.is_pressed() {
+                        lmb_pressed = false;
+                        let _ = handle.emit_all("lmb-released", ());
+                    }
+
+                    if !lmb_pressed && LeftButton.is_pressed() {
+                        lmb_pressed = true;
+                        let _ = handle.emit_all("lmb-pressed", ());
                     }
                     // ============================================================
 
@@ -158,7 +172,7 @@ fn main() {
                         both_pressed_time = Some(SystemTime::now());
                     }
 
-                    // One of them released → evaluate overstrafe (Late)
+                    // One of them released → evaluate overstrafe (Early)
                     if (!left_pressed || !right_pressed) && both_pressed_time.is_some() {
                         if let Some(start) = both_pressed_time {
                             if let Ok(elapsed) = start.elapsed() {
