@@ -151,24 +151,15 @@ fn main() {
                     // ============================================================
 
                     // ==================== STRAFE EVALUATION ====================
-					// Both A and D pressed → start timing overlap
                     if left_pressed && right_pressed && both_pressed_time.is_none() {
                         both_pressed_time = Some(SystemTime::now());
                     }
-                    
-                    // One of them released → evaluate overstrafe (Early)
+
                     if (!left_pressed || !right_pressed) && both_pressed_time.is_some() {
                         if let Some(start) = both_pressed_time {
                             if let Ok(elapsed) = start.elapsed() {
                                 if !w_pressed && !s_pressed {
-                                    // Improved guard: check if we just processed an understrafe
-                                    let just_did_understrafe = right_released_time.is_some() || left_released_time.is_some();
-                    
-                                    if !just_did_understrafe {
-                                        eval_overstrafe(elapsed, &mut both_pressed_time, handle.clone());
-                                    } else {
-                                        both_pressed_time = None; // Prevent Perfect being overwritten by Early
-                                    }
+                                    eval_overstrafe(elapsed, &mut both_pressed_time, handle.clone());
                                 } else {
                                     both_pressed_time = None;
                                 }
