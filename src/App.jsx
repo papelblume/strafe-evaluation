@@ -226,21 +226,15 @@ function Stats(props) {
 function WASD() {
   const [aPressed, setAPressed] = createSignal(false);
   const [dPressed, setDPressed] = createSignal(false);
-  const [lmbPressed, setLmbPressed] = createSignal(false);   // ← NEW
 
   createEffect(() => {
     let unlistenA, unlistenD, unlistenReleaseA, unlistenReleaseD;
-    let unlistenLMB, unlistenLMBRelease;   // ← NEW
 
     const setupListeners = async () => {
       unlistenA = await listen('a-pressed', () => setAPressed(true));
       unlistenD = await listen('d-pressed', () => setDPressed(true));
       unlistenReleaseA = await listen('a-released', () => setAPressed(false));
       unlistenReleaseD = await listen('d-released', () => setDPressed(false));
-
-      // LMB listeners
-      unlistenLMB = await listen('lmb-pressed', () => setLmbPressed(true));
-      unlistenLMBRelease = await listen('lmb-released', () => setLmbPressed(false));
     };
 
     onCleanup(() => {
@@ -248,8 +242,6 @@ function WASD() {
       if (typeof unlistenD === "function") unlistenD();
       if (typeof unlistenReleaseA === "function") unlistenReleaseA();
       if (typeof unlistenReleaseD === "function") unlistenReleaseD();
-      if (typeof unlistenLMB === "function") unlistenLMB();
-      if (typeof unlistenLMBRelease === "function") unlistenLMBRelease();
     });
 
     setupListeners();
@@ -279,28 +271,19 @@ function WASD() {
 
   return (
     <div className="flex group justify-center items-center w-full h-full">
-      {/* Left buttons */}
       <div className="flex flex-col basis-0 flex-grow items-end opacity-0 -translate-x-2 duration-200 group-hover:opacity-100 group-hover:translate-x-0">
         <button className="wasd-button text-white bg-secondary" onClick={simulateEarly}>Early</button>
         <button className="wasd-button text-white bg-accent" onClick={simulateLate}>Late</button>
         <button className="wasd-button text-white bg-[#b5ac8c]" onClick={simulatePerfect}>Perfect</button>
       </div>
 
-      {/* WASD + LMB Row */}
-      <div className="flex justify-center basis-0 flex-grow gap-8">
+      <div className="flex justify-center basis-0 flex-grow">
         <div className="select-none pointer-events-none text-dark dark:text-bright flex justify-between w-40 text-center font-bold text-xl">
           <div className={`flex border border-dark/20 dark:border-bright/20 border-r border-b shadow-lg border-b-dark/50 dark:border-b-bright/50 w-16 h-16 rounded-md justify-center items-center duration-75 transition-all ${aPressed() ? "bg-accent/70 scale-100 translate-y-[4px]" : "bg-secondary/10 dark:bg-secondary/20"}`}>
             <p>A</p>
           </div>
           <div className={`flex border border-dark/20 dark:border-bright/20 border-l border-b shadow-lg border-b-dark/50 dark:border-b-bright/50 w-16 h-16 rounded-md justify-center items-center duration-75 transition-all ${dPressed() ? "bg-accent/70 translate-y-[4px]" : "bg-secondary/10 dark:bg-secondary/20"}`}>
             <p>D</p>
-          </div>
-        </div>
-
-        {/* LMB Indicator - on the right side of A/D */}
-        <div className="flex items-center">
-          <div className={`flex border border-dark/20 dark:border-bright/20 border-b shadow-lg border-b-dark/50 dark:border-b-bright/50 w-16 h-16 rounded-md justify-center items-center duration-75 transition-all ${lmbPressed() ? "bg-red-500/80 scale-100 translate-y-[4px]" : "bg-secondary/10 dark:bg-secondary/20"}`}>
-            <p className="font-bold text-lg">LMB</p>
           </div>
         </div>
       </div>
@@ -316,7 +299,7 @@ function App() {
   const [lateStrafes, setLateStrafes] = createSignal([]);
   const [perfectStrafes, setPerfectStrafes] = createSignal([]);
 
-  const [countOnlyLMB, setCountOnlyLMB] = createSignal(false);   // ← NEW
+  const [countOnlyLMB, setCountOnlyLMB] = createSignal(false);
   const [isDark, setIsDark] = createSignal(false);
 
   onMount(() => {
@@ -344,7 +327,7 @@ function App() {
     setTotalStrafes([]);
   }
 
-  // Strafe listener - now respects LMB toggle
+  // Strafe listener
   createEffect(() => {
     let unlistenStrafe;
 
@@ -401,7 +384,6 @@ function App() {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* NEW: LMB Toggle */}
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
@@ -441,7 +423,7 @@ function App() {
         </div>
       </div>
 
-      {/* WASD Area */}
+      {/* WASD Area - LMB box removed */}
       <div className="h-32 mb-4 flex items-center justify-center">
         <WASD />
       </div>
