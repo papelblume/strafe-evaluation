@@ -36,7 +36,6 @@ function getStats(duration_array) {
     return { median: 0, min: 0, max: 0, average: 0, std_deviation: 0, samples: 0 };
   }
 
-  // For Late, we use absolute values for min/max/average/std calculations
   const absValues = duration_array.map(Math.abs);
   const sorted = [...absValues].sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
@@ -48,7 +47,7 @@ function getStats(duration_array) {
     median = sorted[middle];
   }
 
-  let o = getMeanAndVar(absValues);   // use absolute values
+  let o = getMeanAndVar(absValues);
 
   return {
     median: median,
@@ -68,7 +67,7 @@ function getOccurance(duration_array) {
   let out = new Array(41).fill(0);
 
   duration_array.forEach(x => {
-    let n = Math.ceil(x / 5000);
+    let n = Math.ceil(Math.abs(x) / 5000);   // use abs for Late
     if (n < out.length) out[n] += 1;
   });
 
@@ -82,7 +81,7 @@ const MyChart = (props) => {
     labels: labels,
     datasets: [
       { label: 'Early', data: getOccurance([]), borderRadius: 5, backgroundColor: "#a5c5ae" },
-      { label: 'Late', data: [0], borderRadius: 5, backgroundColor: "#8cb5a8" },
+      { label: 'Late', data: getOccurance([]), borderRadius: 5, backgroundColor: "#8cb5a8" },
       { label: 'Perfect', data: [0], borderRadius: 5, backgroundColor: "#b5ac8c" },
     ],
   });
@@ -99,7 +98,7 @@ const MyChart = (props) => {
       datasets: [
         { label: 'Early', data: getOccurance(earlyStrafes), borderRadius: 5, backgroundColor: "#a5c5ae" },
         { label: 'Late', data: getOccurance(lateStrafes), borderRadius: 5, backgroundColor: "#8cb5a8" },
-        { label: 'Perfect', data: getOccurance(perfectStrafes), borderRadius: 5, backgroundColor: "#b5ac8c" },
+        { label: 'Perfect', data: [perfectStrafes.length], borderRadius: 5, backgroundColor: "#b5ac8c" },
       ],
     });
   });
@@ -108,8 +107,21 @@ const MyChart = (props) => {
     responsive: true,
     maintainAspectRatio: true,
     scales: {
-      x: { stacked: true },
-      y: { stacked: true }
+      x: { 
+        stacked: true,
+        ticks: { color: 'var(--chart-text)', font: { size: 12 } },
+        grid: { color: 'var(--chart-grid)' }
+      },
+      y: { 
+        stacked: true,
+        ticks: { color: 'var(--chart-text)', font: { size: 12 } },
+        grid: { color: 'var(--chart-grid)' }
+      }
+    },
+    plugins: {
+      legend: {
+        labels: { color: 'var(--chart-text)' }
+      }
     }
   };
 
@@ -229,38 +241,27 @@ function WASD() {
     setupListeners();
   });
 
-   // Simulate key press patterns f
   async function simulateEarly() {
     setAPressed(true);
-    
     setTimeout(() => setAPressed(false), 500);
     setTimeout(() => setDPressed(true), 850);
     setTimeout(() => setDPressed(false), 1350);
   }
-  
+
   async function simulateLate() {
     setAPressed(true);
-    
     setTimeout(() => setDPressed(true), 500);
     setTimeout(() => setAPressed(false), 850);
     setTimeout(() => setDPressed(false), 1350);
   }
-  
+
   async function simulatePerfect() {
+    const delay = Math.floor(Math.random() * 81); // 0–80ms for perfect feel
     setAPressed(true);
-    
-    setTimeout(() => setDPressed(true), 500);
     setTimeout(() => setAPressed(false), 500);
-    setTimeout(() => setDPressed(false), 1000);
+    setTimeout(() => setDPressed(true), 500 + delay);
+    setTimeout(() => setDPressed(false), 1000 + delay);
   }
-  
-  async function simulatePerfect() {
-	const delay = Math.floor(Math.random() * 101);		// random 0–100 ms
-	setAPressed(true);									// Release A after 500ms
-	setTimeout(() => setAPressed(false), 500);			// Press D after releasing A + small delay (0–100ms)
-	setTimeout(() => setDPressed(true), 500 + delay);	// Release D after holding it for ~500ms
-	setTimeout(() => setDPressed(false), 1000 + delay);	// total ~1000–1100ms
-}
 
   return (
     <div className="flex group justify-center items-center w-full h-full">
@@ -292,16 +293,12 @@ function App() {
   const [lateStrafes, setLateStrafes] = createSignal([]);
   const [perfectStrafes, setPerfectStrafes] = createSignal([]);
 
-  // Theme state
   const [isDark, setIsDark] = createSignal(false);
 
   onMount(() => {
     const saved = localStorage.getItem('theme');
-    if (saved) {
-      setIsDark(saved === 'dark');
-    } else {
-      setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
+    if (saved) setIsDark(saved === 'dark');
+    else setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
 
   createEffect(() => {
@@ -323,49 +320,36 @@ function App() {
     setTotalStrafes([]);
   }
 
-  // Strafe listener
+  // Strafe listener - Late times are negative
   createEffect(() => {
-// Strafe listener - Late times are now negative
-createEffect(() => {
-  let unlistenStrafe;
+    let unlistenStrafe;
 
-  const setupListeners = async () => {
-    unlistenStrafe = await listen('strafe', (event) => {
-      let duration = event.payload.duration;
-      const type = event.payload.strafe_type;
+    const setupListeners = async () => {
+      unlistenStrafe = await listen('strafe', (event) => {
+        let duration = event.payload.duration;
+        const type = event.payload.strafe_type;
 
-      // Make all Late strafe times negative
-      if (type === "Late") {
-        duration = -duration;
-      }
+        if (type === "Late") {
+          duration = -duration;
+        }
 
-      const strafe = {
-        type: type,
-        duration: duration
-      };
+        const strafe = { type, duration };
 
-      switch (type) {
-        case "Early":
-          setEarlyStrafes(a => [duration, ...a]);
-          break;
-        case "Late":
-          setLateStrafes(a => [duration, ...a]);
-          break;
-        case "Perfect":
-          setPerfectStrafes(a => [duration, ...a]);
-          break;
-      }
+        switch (type) {
+          case "Early":
+            setEarlyStrafes(a => [duration, ...a]);
+            break;
+          case "Late":
+            setLateStrafes(a => [duration, ...a]);
+            break;
+          case "Perfect":
+            setPerfectStrafes(a => [duration, ...a]);
+            break;
+        }
 
-      setTotalStrafes(a => [strafe, ...a]);
-    });
-  };
-
-  onCleanup(() => {
-    if (typeof unlistenStrafe === "function") unlistenStrafe();
-  });
-
-  setupListeners();
-});
+        setTotalStrafes(a => [strafe, ...a]);
+      });
+    };
 
     onCleanup(() => {
       if (typeof unlistenStrafe === "function") unlistenStrafe();
@@ -410,12 +394,12 @@ createEffect(() => {
           <Stats earlyStrafes={earlyStrafes()} lateStrafes={lateStrafes()} perfectStrafes={perfectStrafes()} />
         </div>
 
-        <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 text-black dark:text-white rounded-xl p-4 shadow-xl">
+        <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl">
           <MyChart earlyStrafes={earlyStrafes()} lateStrafes={lateStrafes()} perfectStrafes={perfectStrafes()} />
         </div>
       </div>
 
-      {/* WASD Area - A/D visual only */}
+      {/* WASD Area */}
       <div className="h-32 mb-4 flex items-center justify-center">
         <WASD />
       </div>
@@ -424,7 +408,8 @@ createEffect(() => {
       <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3">
         <For each={totalStrafes()}>
           {(strafe) => (
-            <div className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1">
+            <div className={`flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1
+              ${strafe.type === "Late" ? "text-red-500 dark:text-red-400" : ""}`}>
               <p className="font-bold text-center text-sm">{strafe.type}</p>
               <p className="text-center text-sm">{draw_time(strafe.duration)}</p>
             </div>
