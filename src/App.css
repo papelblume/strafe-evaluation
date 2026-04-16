@@ -13,15 +13,14 @@ body {
   font-family: system-ui, sans-serif;
 }
 
-/* The rest of your styles stay exactly the same */
 .text-stroke {
   -webkit-text-stroke: 1px #020617;
 }
 
 .bottom-bar {
-  -webkit-box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.3);
-  -moz-box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.3);
-  box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.3);
+  -webkit-box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.19);
+  -moz-box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.19);
+  box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.19);
 }
 
 .wasd-button {
