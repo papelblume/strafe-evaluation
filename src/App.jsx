@@ -99,7 +99,7 @@ const MyChart = (props) => {
       datasets: [
         { label: 'Early', data: getOccurance(earlyStrafes), borderRadius: 5, backgroundColor: "#a5c5ae" },
         { label: 'Late', data: getOccurance(lateStrafes), borderRadius: 5, backgroundColor: "#8cb5a8" },
-        { label: 'Perfect', data: [perfectStrafes.length], borderRadius: 5, backgroundColor: "#b5ac8c" },
+        { label: 'Perfect', data: getOccurance(perfectStrafes), borderRadius: 5, backgroundColor: "#b5ac8c" },
       ],
     });
   });
