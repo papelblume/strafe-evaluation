@@ -16,8 +16,7 @@ struct Payload {
     lmb_pressed: bool,
 }
 
-const PERFECT_MAX_MS: u128 = 40;
-const GOOD_MAX_MS: u128 = 80;
+const PERFECT_MAX_MS: u128 = 80;
 const LATE_MAX_MS: u128 = 200;
 const SPAM_COOLDOWN_MS: u128 = 60;
 
@@ -44,8 +43,6 @@ fn eval_understrafe(
 
     let strafe_type = if time_passed_ms <= PERFECT_MAX_MS {
         "Perfect"
-    } else if time_passed_ms <= GOOD_MAX_MS {
-        "Good"
     } else if time_passed_ms <= LATE_MAX_MS {
         "Late"
     } else {
