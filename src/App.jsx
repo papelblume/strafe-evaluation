@@ -187,12 +187,18 @@ function WASD() {
 
   return (
     <div className="flex group justify-center items-center w-full h-full">
+      {/* Simulation Buttons - Now 2x2 Grid */}
       <div className="flex flex-col basis-0 flex-grow items-end opacity-0 -translate-x-2 duration-200 group-hover:opacity-100 group-hover:translate-x-0">
-        <button className="wasd-button text-white bg-secondary" onClick={simulateEarly}>Early</button>
-        <button className="wasd-button text-white bg-accent" onClick={simulateLate}>Late</button>
-        <button className="wasd-button text-white bg-[#b5ac8c]" onClick={simulatePerfect}>Perfect</button>
-        <button className="wasd-button text-white bg-[#b5ac8c]" onClick={simulateGood}>Good</button>
+        <div className="grid grid-cols-2 gap-2">
+          <button className="wasd-button text-white bg-[#b5ac8c]" onClick={simulatePerfect}>Perfect</button>
+          <button className="wasd-button text-white bg-secondary" onClick={simulateEarly}>Early</button>
+
+          <button className="wasd-button text-white bg-[#b5ac8c]" onClick={simulateGood}>Good</button>
+          <button className="wasd-button text-white bg-accent" onClick={simulateLate}>Late</button>
+        </div>
       </div>
+
+      {/* WASD Keys */}
       <div className="flex justify-center basis-0 flex-grow">
         <div className="select-none pointer-events-none text-dark dark:text-bright flex justify-between w-40 text-center font-bold text-xl">
           <div className={`flex border border-dark/20 dark:border-bright/20 border-r border-b shadow-lg border-b-dark/50 dark:border-b-bright/50 w-16 h-16 rounded-md justify-center items-center duration-75 transition-all ${aPressed() ? "bg-accent/70 scale-100 translate-y-[4px]" : "bg-secondary/10 dark:bg-secondary/20"}`}>
@@ -203,6 +209,7 @@ function WASD() {
           </div>
         </div>
       </div>
+
       <div className="basis-0 flex-grow min-w-[200px]"></div>
     </div>
   );
