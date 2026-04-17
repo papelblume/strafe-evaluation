@@ -30,13 +30,13 @@ function getStats(duration_array) {
   return { median, min: sorted[0], max: sorted[sorted.length - 1], average: o.average, std_deviation: o.std_deviation, samples: duration_array.length };
 }
 
-function getOccurance(duration_array, binSize = 2) {
-  if (!duration_array || duration_array.length === 0) return new Array(151).fill(0);
-  const out = new Array(151).fill(0);
+function getOccurance(duration_array, binSize = 5) {
+  if (!duration_array || duration_array.length === 0) return new Array(61).fill(0);
+  const out = new Array(61).fill(0);
   duration_array.forEach(x => {
     const bin = Math.round(x / binSize);
     const index = 20 + bin;
-    if (index >= 0 && index < 151) out[index] += 1;
+    if (index >= 0 && index < 61) out[index] += 1;
   });
   return out;
 }
@@ -95,10 +95,11 @@ function StatsTable(props) {
           <td className="px-3">{p(props.perfect.samples)}%</td>
           <td className="px-3">{p(props.late.samples)}%</td>
         </tr>
+		  {/* Tooltip - positioned below to stay inside window */}
         <tr className="font-medium border-t border-dark/30 dark:border-bright/30 bg-secondary/30 dark:bg-secondary/40">
           <th className="px-4 relative group">
             Strafe+LMB
-            <div className="absolute hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-2 rounded shadow-lg -top-10 left-1/2 -translate-x-1/2 w-56 text-center z-50 pointer-events-none">
+			  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">      
               Counts only strafes where Left Mouse Button (LMB) was pressed during the strafe
             </div>
           </th>
@@ -113,8 +114,8 @@ function StatsTable(props) {
 }
 
 const MyChart = (props) => {
-  const binSize = 2;
-  const labels = createMemo(() => Array.from({ length: 151 }, (_, i) => (i - 20) * binSize));
+  const binSize = 5;
+  const labels = createMemo(() => Array.from({ length: 61 }, (_, i) => (i - 20) * binSize));
 
   const [chartData, setChartData] = createSignal({
     labels: labels(),
