@@ -17,7 +17,7 @@ struct Payload {
 }
 
 const PERFECT_MAX_MS: u128 = 80;
-const LATE_MAX_MS: u128 = 150;
+const LATE_MAX_MS: u128 = 200;
 const SPAM_COOLDOWN_MS: u128 = 60;
 
 fn main() {
