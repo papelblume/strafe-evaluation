@@ -361,7 +361,7 @@ function App() {
           />
         </div>
 
-        <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl">
+        <div className="flex flex-col rounded-xl border border-white/30 dark:border-white/10 p-4 w-[50%] bg-secondary/50 dark:bg-secondary/30 shadow-xl">
           <MyChart
             earlyStrafes={earlyStrafes().map(s => s.duration)}
             goodStrafes={goodStrafes().map(s => s.duration)}
@@ -376,7 +376,7 @@ function App() {
       </div>
 
       {/* History Bar */}
-      <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3 scrollbar-hide">
+      <div className="flex flex-row p-3 bg-secondary/50 dark:bg-secondary/30 h-30 overflow-x-auto w-full gap-3 scrollbar-hide">
         <For each={totalStrafes()}>
           {(strafe) => (
             <div className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1">
