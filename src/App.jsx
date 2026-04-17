@@ -209,10 +209,7 @@ function WASD() {
 }
 
 function App() {
-  const [earlyStrafes, setEarlyStrafes] = createSignal([]);
-  const [goodStrafes, setGoodStrafes] = createSignal([]);
-  const [perfectStrafes, setPerfectStrafes] = createSignal([]);
-  const [lateStrafes, setLateStrafes] = createSignal([]);
+  const [allStrafes, setAllStrafes] = createSignal([]);
 
   const [countOnlyLMB, setCountOnlyLMB] = createSignal(false);
   const [isDark, setIsDark] = createSignal(false);
@@ -259,28 +256,22 @@ function App() {
   const toggleTheme = () => setIsDark(prev => !prev);
 
   function resetStrafes() {
-    batch(() => {
-      setEarlyStrafes([]); setGoodStrafes([]); setPerfectStrafes([]); setLateStrafes([]);
-    });
+    setAllStrafes([]);
   }
 
+  // Listen for strafes from Tauri backend
   createEffect(() => {
     let unlisten;
     const setup = async () => {
       unlisten = await listen('strafe', (event) => {
         const { strafe_type: type, duration, lmb_pressed } = event.payload;
-        let finalDuration = type === "Early" ? -duration : duration;
+        const finalDuration = type === "Early" ? -duration : duration;
         const strafeObj = { type, duration: finalDuration, lmb_pressed };
 
         const shouldCount = !countOnlyLMB() || lmb_pressed || type === "Perfect" || type === "Good";
 
         if (shouldCount) {
-          batch(() => {
-            if (type === "Early") setEarlyStrafes(a => [strafeObj, ...a]);
-            else if (type === "Good") setGoodStrafes(a => [strafeObj, ...a]);
-            else if (type === "Perfect") setPerfectStrafes(a => [strafeObj, ...a]);
-            else if (type === "Late") setLateStrafes(a => [strafeObj, ...a]);
-          });
+          setAllStrafes(prev => [strafeObj, ...prev]); // Most recent first
           playBeep(type);
         }
       });
@@ -289,106 +280,113 @@ function App() {
     onCleanup(() => unlisten?.());
   });
 
-  const allStats = createMemo(() => ({
-    alls: getStats([...earlyStrafes(), ...goodStrafes(), ...perfectStrafes(), ...lateStrafes()].map(s => s.duration)),
-    early: getStats(earlyStrafes().map(s => s.duration)),
-    good: getStats(goodStrafes().map(s => s.duration)),
-    perfect: getStats(perfectStrafes().map(s => s.duration)),
-    late: getStats(lateStrafes().map(s => s.duration))
-  }));
+  // Statistics
+  const allStats = createMemo(() => {
+    const allDurations = allStrafes().map(s => s.duration);
+    const earlyDurations = allStrafes().filter(s => s.type === "Early").map(s => s.duration);
+    const goodDurations = allStrafes().filter(s => s.type === "Good").map(s => s.duration);
+    const perfectDurations = allStrafes().filter(s => s.type === "Perfect").map(s => s.duration);
+    const lateDurations = allStrafes().filter(s => s.type === "Late").map(s => s.duration);
 
-  const lmbFired = createMemo(() => ({
-    samples: earlyStrafes().filter(s => s.lmb_pressed).length +
-             goodStrafes().filter(s => s.lmb_pressed).length +
-             perfectStrafes().filter(s => s.lmb_pressed).length +
-             lateStrafes().filter(s => s.lmb_pressed).length,
-    early: earlyStrafes().filter(s => s.lmb_pressed).length,
-    good: goodStrafes().filter(s => s.lmb_pressed).length,
-    perfect: perfectStrafes().filter(s => s.lmb_pressed).length,
-    late: lateStrafes().filter(s => s.lmb_pressed).length
-  }));
+    return {
+      alls: getStats(allDurations),
+      early: getStats(earlyDurations),
+      good: getStats(goodDurations),
+      perfect: getStats(perfectDurations),
+      late: getStats(lateDurations)
+    };
+  });
 
+  const lmbFired = createMemo(() => {
+    const earlyLMB = allStrafes().filter(s => s.type === "Early" && s.lmb_pressed).length;
+    const goodLMB = allStrafes().filter(s => s.type === "Good" && s.lmb_pressed).length;
+    const perfectLMB = allStrafes().filter(s => s.type === "Perfect" && s.lmb_pressed).length;
+    const lateLMB = allStrafes().filter(s => s.type === "Late" && s.lmb_pressed).length;
+
+    return {
+      samples: earlyLMB + goodLMB + perfectLMB + lateLMB,
+      early: earlyLMB,
+      good: goodLMB,
+      perfect: perfectLMB,
+      late: lateLMB
+    };
+  });
+
+  // Most recent 100 strafes (chronological order preserved)
   const recentStrafes = createMemo(() => {
-    const combined = [
-      ...earlyStrafes(),
-      ...goodStrafes(),
-      ...perfectStrafes(),
-      ...lateStrafes()
-    ];
-
-    // Simply take the last 100 items (most recent first, no sorting)
-    return combined.slice(-100).reverse();
+    return allStrafes().slice(0, 100);
   });
 
   return (
     <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
-      {/* Updated Header */}
-<div className="flex justify-between items-center px-6 py-3 select-none">
-  {/* Left: Title */}
-  <div className="flex items-center">
-    <h1 className="mr-3 drop-shadow-lg py-2 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">
-      PatrikZero's
-    </h1>
-    <h1 className="py-2 text-4xl font-bold text-center pointer-events-none">
-      Strafe Evaluation
-    </h1>
-  </div>
+      {/* Header */}
+      <div className="flex justify-between items-center px-6 py-3 select-none">
+        {/* Left: Title */}
+        <div className="flex items-center">
+          <h1 className="mr-3 drop-shadow-lg py-2 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">
+            PatrikZero's
+          </h1>
+          <h1 className="py-2 text-4xl font-bold text-center pointer-events-none">
+            Strafe Evaluation
+          </h1>
+        </div>
 
-  {/* Center: Controls (stacked vertically) */}
-  <div className="flex flex-col items-center gap-3 flex-1 max-w-md">
-    {/* Row 1: Volume + Count only on LMB */}
-    <div className="flex items-center gap-6 w-full justify-center">
-      <div className="flex items-center gap-2 text-xs">
-        <span className="font-medium text-bright/70 whitespace-nowrap">Vol:</span>
-        <input 
-          type="range" 
-          min="0" 
-          max="1" 
-          step="0.01" 
-          value={volume()} 
-          onInput={e => setVolume(parseFloat(e.target.value))} 
-          className="w-28 accent-primary" 
-        />
+        {/* Center: Controls */}
+        <div className="flex flex-col items-center gap-3 flex-1 max-w-md">
+          {/* Row 1: Volume + Count only on LMB */}
+          <div className="flex items-center gap-6 w-full justify-center">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-medium text-bright/70 whitespace-nowrap">Vol:</span>
+              <input 
+                type="range" 
+                min="0" 
+                max="1" 
+                step="0.01" 
+                value={volume()} 
+                onInput={e => setVolume(parseFloat(e.target.value))} 
+                className="w-28 accent-primary" 
+              />
+            </div>
+
+            <label className="flex items-center gap-2 cursor-pointer select-none text-sm">
+              <input 
+                type="checkbox" 
+                checked={countOnlyLMB()} 
+                onChange={e => setCountOnlyLMB(e.target.checked)} 
+                className="w-5 h-5 accent-primary cursor-pointer" 
+              />
+              <span className="font-medium whitespace-nowrap">Count only on LMB</span>
+            </label>
+          </div>
+
+          {/* Row 2: Sound checkboxes */}
+          <div className="flex gap-4 text-xs items-center">
+            <span className="font-medium text-bright/70 whitespace-nowrap">Sound:</span>
+            {Object.keys(soundEnabled()).map(t => (
+              <label key={t} className="flex items-center gap-1 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={soundEnabled()[t]} 
+                  onChange={e => setSoundEnabled(prev => ({ ...prev, [t]: e.target.checked }))} 
+                />
+                <span>{t}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Right: Theme Toggle */}
+        <button 
+          onClick={toggleTheme} 
+          className="px-6 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
+        >
+          {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
+        </button>
       </div>
 
-      <label className="flex items-center gap-2 cursor-pointer select-none text-sm">
-        <input 
-          type="checkbox" 
-          checked={countOnlyLMB()} 
-          onChange={e => setCountOnlyLMB(e.target.checked)} 
-          className="w-5 h-5 accent-primary cursor-pointer" 
-        />
-        <span className="font-medium whitespace-nowrap">Count only on LMB</span>
-      </label>
-    </div>
-
-    {/* Row 2: Sound checkboxes */}
-    <div className="flex gap-4 text-xs items-center">
-      <span className="font-medium text-bright/70 whitespace-nowrap">Sound:</span>
-      {Object.keys(soundEnabled()).map(t => (
-        <label key={t} className="flex items-center gap-1 cursor-pointer">
-          <input 
-            type="checkbox" 
-            checked={soundEnabled()[t]} 
-            onChange={e => setSoundEnabled(prev => ({ ...prev, [t]: e.target.checked }))} 
-          />
-          <span>{t}</span>
-        </label>
-      ))}
-    </div>
-  </div>
-
-  {/* Right: Theme Toggle Button */}
-  <button 
-    onClick={toggleTheme} 
-    className="px-6 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
-  >
-    {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
-  </button>
-</div>
-
-      {/* Slightly more compact main area */}
+      {/* Main Content */}
       <div className="justify-between flex-grow flex p-3 gap-4">
+        {/* Statistics Panel */}
         <div className="flex flex-col rounded-xl border border-white/30 dark:border-white/10 p-4 w-[50%] bg-secondary/50 dark:bg-secondary/30 shadow-xl">
           <div className="flex justify-between mb-4">
             <h2 className="select-none text-2xl font-bold">Statistics</h2>
@@ -404,38 +402,40 @@ function App() {
           />
         </div>
 
+        {/* Chart Panel */}
         <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl">
           <MyChart
-            earlyStrafes={earlyStrafes().map(s => s.duration)}
-            goodStrafes={goodStrafes().map(s => s.duration)}
-            perfectStrafes={perfectStrafes().map(s => s.duration)}
-            lateStrafes={lateStrafes().map(s => s.duration)}
+            earlyStrafes={allStrafes().filter(s => s.type === "Early").map(s => s.duration)}
+            goodStrafes={allStrafes().filter(s => s.type === "Good").map(s => s.duration)}
+            perfectStrafes={allStrafes().filter(s => s.type === "Perfect").map(s => s.duration)}
+            lateStrafes={allStrafes().filter(s => s.type === "Late").map(s => s.duration)}
           />
         </div>
       </div>
 
+      {/* WASD Visualizer */}
       <div className="h-32 mb-4 flex items-center justify-center">
         <WASD />
       </div>
 
-{/* History Bar - Most recent 100, no sorting */}
-<div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3 scrollbar-hide">
-  <For each={recentStrafes()}>
-    {(strafe) => (
-      <div 
-        className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1"
-      >
-        <p 
-          className="font-bold text-center text-sm" 
-          style={{ color: colorMap[strafe.type] }}
-        >
-          {strafe.type}
-        </p>
-        <p className="text-center text-sm">{draw_time(strafe.duration)}</p>
+      {/* History Bar - Most recent 100 strafes in correct order */}
+      <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3 scrollbar-hide">
+        <For each={recentStrafes()}>
+          {(strafe) => (
+            <div 
+              className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1"
+            >
+              <p 
+                className="font-bold text-center text-sm" 
+                style={{ color: colorMap[strafe.type] }}
+              >
+                {strafe.type}
+              </p>
+              <p className="text-center text-sm">{draw_time(strafe.duration)}</p>
+            </div>
+          )}
+        </For>
       </div>
-    )}
-  </For>
-</div>
     </div>
   );
 }
