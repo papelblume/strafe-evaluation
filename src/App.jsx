@@ -317,8 +317,8 @@ function App() {
     return allStrafes().slice(0, 100);
   });
 
-    return (
-    <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
+    return (  return (
+    <div className="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
       {/* Header */}
       <div className="flex justify-between items-center px-6 py-3 select-none">
         {/* Left: Title */}
@@ -386,18 +386,16 @@ function App() {
 
       {/* Main Content */}
       <div className="flex flex-grow flex-col p-3 gap-4 overflow-hidden">
-        {/* Top Row: Statistics + Chart */}
-        <div className="flex gap-4 flex-1 min-h-0">
-          {/* Statistics Panel */}
-          <div className="flex flex-col rounded-xl border border-white/30 dark:border-white/10 p-4 w-[50%] bg-secondary/50 dark:bg-secondary/30 shadow-xl h-fit max-h-[45vh]">
-            <div className="flex justify-between mb-3">
+        {/* Statistics + Chart Row */}
+        <div className="flex gap-4 flex-shrink-0">   {/* ← Important: flex-shrink-0 */}
+
+          {/* Statistics Panel - Fixed 340px height */}
+          <div className="flex flex-col rounded-xl border border-white/30 dark:border-white/10 p-4 
+                          w-[50%] bg-secondary/50 dark:bg-secondary/30 shadow-xl 
+                          h-[340px]">   {/* ← Changed to fixed height */}
+            <div className="flex justify-between mb-4">
               <h2 className="select-none text-2xl font-bold">Statistics</h2>
-              <button
-                onClick={resetStrafes}
-                className="text-bright select-none shadow-md px-5 py-1 rounded-md bg-primary hover:scale-110 active:scale-95 transition-all"
-              >
-                Reset
-              </button>
+              <button onClick={resetStrafes} className="text-bright select-none shadow-md px-5 py-1 rounded-md bg-primary hover:scale-110 active:scale-95 transition-all">Reset</button>
             </div>
             <div className="flex-1 overflow-auto">
               <StatsTable
@@ -411,35 +409,35 @@ function App() {
             </div>
           </div>
 
-          {/* Chart Panel */}
-          <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl h-fit max-h-[45vh]">
-            <h2 className="select-none text-2xl font-bold mb-3">Strafe Timing Chart</h2>
+          {/* Chart Panel - Fixed 340px height */}
+          <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl 
+                          h-[340px]">   {/* ← Changed to fixed height */}
+            <h2 className="select-none text-2xl font-bold mb-4">Strafe Timing Chart</h2>
             <div className="flex-1 min-h-0 overflow-hidden">
               <MyChart
-                earlyStrafes={allStrafes().filter((s) => s.type === "Early").map((s) => s.duration)}
-                goodStrafes={allStrafes().filter((s) => s.type === "Good").map((s) => s.duration)}
-                perfectStrafes={allStrafes().filter((s) => s.type === "Perfect").map((s) => s.duration)}
-                lateStrafes={allStrafes().filter((s) => s.type === "Late").map((s) => s.duration)}
+                earlyStrafes={allStrafes().filter(s => s.type === "Early").map(s => s.duration)}
+                goodStrafes={allStrafes().filter(s => s.type === "Good").map(s => s.duration)}
+                perfectStrafes={allStrafes().filter(s => s.type === "Perfect").map(s => s.duration)}
+                lateStrafes={allStrafes().filter(s => s.type === "Late").map(s => s.duration)}
               />
             </div>
           </div>
         </div>
 
-        {/* WASD Visualizer */}
+        {/* WASD Visualizer - Optional: you can keep or adjust */}
         <div className="h-32 flex items-center justify-center flex-shrink-0">
           <WASD />
         </div>
 
-        {/* History Bar */}
-        <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3 scrollbar-hide flex-shrink-0">
+        {/* History Bar - 90px tall */}
+        <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-[90px] overflow-x-auto w-full gap-3 scrollbar-hide flex-shrink-0">   {/* ← Changed to h-[90px] */}
           <For each={recentStrafes()}>
             {(strafe) => (
-              <div
-                key={strafe.id || Math.random()} // Consider using a stable unique ID if available
+              <div 
                 className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1"
               >
-                <p
-                  className="font-bold text-center text-sm"
+                <p 
+                  className="font-bold text-center text-sm" 
                   style={{ color: colorMap[strafe.type] }}
                 >
                   {strafe.type}
@@ -451,6 +449,7 @@ function App() {
         </div>
       </div>
     </div>
+  );
   );
 }
 
