@@ -278,9 +278,8 @@ function App() {
             else if (type === "Good") setGoodStrafes(a => [strafeObj, ...a]);
             else if (type === "Perfect") setPerfectStrafes(a => [strafeObj, ...a]);
             else if (type === "Late") setLateStrafes(a => [strafeObj, ...a]);
-            
-            setTotalStrafes(a => [strafe, ...a])
           });
+          setTotalStrafes(a => [strafe, ...a])
           playBeep(type);
         }
       });
