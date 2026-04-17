@@ -367,7 +367,6 @@ function App() {
     {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
   </button>
 </div>
-      </div>
 
       {/* Slightly more compact main area */}
       <div className="justify-between flex-grow flex p-3 gap-4">
