@@ -16,91 +16,9 @@ struct Payload {
     lmb_pressed: bool,
 }
 
-const PERFECT_MAX_MS: u128 = 40;
-const GOOD_MAX_MS: u128 = 80;
-const LATE_MAX_MS: u128 = 200;
+const PERFECT_MAX_MS: u128 = 80;
+const LATE_MAX_MS: u128 = 150;
 const SPAM_COOLDOWN_MS: u128 = 60;
-
-fn eval_understrafe(
-    elapsed: Duration,
-    released_time: &mut Option<SystemTime>,
-    app: AppHandle,
-    both_pressed_time: &mut Option<SystemTime>,
-    lmb_during: &mut bool,
-    last_strafe_time: &mut Option<Instant>,
-) {
-    let time_passed_ms = elapsed.as_millis() as u128;
-    if LeftButton.is_pressed() {
-        *lmb_during = true;
-    }
-
-    // Anti-spam protection
-    if let Some(last) = last_strafe_time {
-        if (last.elapsed().as_millis() as u128) < SPAM_COOLDOWN_MS {
-            *released_time = None;
-            return;
-        }
-    }
-
-    let strafe_type = if time_passed_ms <= PERFECT_MAX_MS {
-        "Perfect"
-    } else if time_passed_ms <= GOOD_MAX_MS {
-        "Good"
-    } else if time_passed_ms <= LATE_MAX_MS {
-        "Late"
-    } else {
-        return;
-    };
-
-    let _ = app.emit_all(
-        "strafe",
-        Payload {
-            strafe_type: strafe_type.into(),
-            duration: time_passed_ms,
-            lmb_pressed: *lmb_during,
-        },
-    );
-
-    *released_time = None;
-    *lmb_during = false;
-    *last_strafe_time = Some(Instant::now());
-}
-
-fn eval_overstrafe(
-    elapsed: Duration,
-    both_pressed_time: &mut Option<SystemTime>,
-    app: AppHandle,
-    lmb_during: &mut bool,
-    last_strafe_time: &mut Option<Instant>,
-) {
-    let time_passed_ms = elapsed.as_millis() as u128;
-    if LeftButton.is_pressed() {
-        *lmb_during = true;
-    }
-
-    if time_passed_ms <= LATE_MAX_MS {
-        let _ = app.emit_all(
-            "strafe",
-            Payload {
-                strafe_type: "Early".into(),
-                duration: time_passed_ms,
-                lmb_pressed: *lmb_during,
-            },
-        );
-    }
-
-    *both_pressed_time = None;
-    *lmb_during = false;
-    *last_strafe_time = Some(Instant::now());
-}
-
-fn is_azerty_layout() -> bool {
-    unsafe {
-        let layout = GetKeyboardLayout(0);
-        let layout_id = layout as u32 & 0xFFFF;
-        matches!(layout_id, 0x040C | 0x080C | 0x140C | 0x180C)
-    }
-}
 
 fn main() {
     tauri::Builder::default()
@@ -112,8 +30,8 @@ fn main() {
                 let mut right_pressed = false;
                 let mut w_pressed = false;
                 let mut s_pressed = false;
-                let mut shift_pressed = false;   // NEW
-                let mut ctrl_pressed = false;    // NEW
+                let mut shift_pressed = false;
+                let mut ctrl_pressed = false;
 
                 let mut both_pressed_time: Option<SystemTime> = None;
                 let mut right_released_time: Option<SystemTime> = None;
@@ -250,4 +168,83 @@ fn main() {
         })
         .run(tauri::generate_context!())
         .expect("failed to run app");
+}
+
+fn eval_understrafe(
+    elapsed: Duration,
+    released_time: &mut Option<SystemTime>,
+    app: AppHandle,
+    both_pressed_time: &mut Option<SystemTime>,
+    lmb_during: &mut bool,
+    last_strafe_time: &mut Option<Instant>,
+) {
+    let time_passed_ms = elapsed.as_millis() as u128;
+    if LeftButton.is_pressed() {
+        *lmb_during = true;
+    }
+
+    // Anti-spam protection
+    if let Some(last) = last_strafe_time {
+        if (last.elapsed().as_millis() as u128) < SPAM_COOLDOWN_MS {
+            *released_time = None;
+            return;
+        }
+    }
+
+    let strafe_type = if time_passed_ms <= PERFECT_MAX_MS {
+        "Perfect"
+    } else if time_passed_ms <= LATE_MAX_MS {
+        "Late"
+    } else {
+        return;
+    };
+
+    let _ = app.emit_all(
+        "strafe",
+        Payload {
+            strafe_type: strafe_type.into(),
+            duration: time_passed_ms,
+            lmb_pressed: *lmb_during,
+        },
+    );
+
+    *released_time = None;
+    *lmb_during = false;
+    *last_strafe_time = Some(Instant::now());
+}
+
+fn eval_overstrafe(
+    elapsed: Duration,
+    both_pressed_time: &mut Option<SystemTime>,
+    app: AppHandle,
+    lmb_during: &mut bool,
+    last_strafe_time: &mut Option<Instant>,
+) {
+    let time_passed_ms = elapsed.as_millis() as u128;
+    if LeftButton.is_pressed() {
+        *lmb_during = true;
+    }
+
+    if time_passed_ms <= LATE_MAX_MS {
+        let _ = app.emit_all(
+            "strafe",
+            Payload {
+                strafe_type: "Early".into(),
+                duration: time_passed_ms,
+                lmb_pressed: *lmb_during,
+            },
+        );
+    }
+
+    *both_pressed_time = None;
+    *lmb_during = false;
+    *last_strafe_time = Some(Instant::now());
+}
+
+fn is_azerty_layout() -> bool {
+    unsafe {
+        let layout = GetKeyboardLayout(0);
+        let layout_id = layout as u32 & 0xFFFF;
+        matches!(layout_id, 0x040C | 0x080C | 0x140C | 0x180C)
+    }
 }
