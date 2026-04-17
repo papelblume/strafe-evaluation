@@ -16,9 +16,16 @@ struct Payload {
     lmb_pressed: bool,
 }
 
-const PERFECT_MAX_MS: u128 = 80;
+const PERFECT_MAX_MS: u128 = 40;
+const GOOD_MAX_MS: u128 = 80;
 const LATE_MAX_MS: u128 = 200;
 const SPAM_COOLDOWN_MS: u128 = 60;
+
+fn is_modifier_pressed() -> bool {
+    ShiftKey.is_pressed() || CtrlKey.is_pressed() || // Left + Right
+    LShiftKey.is_pressed() || RShiftKey.is_pressed() ||
+    LControlKey.is_pressed() || RControlKey.is_pressed()
+}
 
 fn eval_understrafe(
     elapsed: Duration,
@@ -41,8 +48,16 @@ fn eval_understrafe(
         }
     }
 
+    // NEW: Ignore strafe if Shift or Ctrl is pressed
+    if is_modifier_pressed() {
+        *released_time = None;
+        return;
+    }
+
     let strafe_type = if time_passed_ms <= PERFECT_MAX_MS {
         "Perfect"
+    } else if time_passed_ms <= GOOD_MAX_MS {
+        "Good"
     } else if time_passed_ms <= LATE_MAX_MS {
         "Late"
     } else {
@@ -73,6 +88,13 @@ fn eval_overstrafe(
     let time_passed_ms = elapsed.as_millis() as u128;
     if LeftButton.is_pressed() {
         *lmb_during = true;
+    }
+
+    // NEW: Ignore strafe if Shift or Ctrl is pressed
+    if is_modifier_pressed() {
+        *both_pressed_time = None;
+        *lmb_during = false;
+        return;
     }
 
     if time_passed_ms <= LATE_MAX_MS {
