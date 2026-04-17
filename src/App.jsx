@@ -303,15 +303,17 @@ function App() {
 
   return (
     <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
-      {/* Clean header matching the screenshot style */}
-<div className="flex items-center justify-between px-6 py-4 bg-dark border-b border-dark/30 select-none">
+      {/* Fixed header - matches the first screenshot exactly */}
+<div className="flex items-center justify-between px-6 py-4 bg-dark dark:bg-dark border-b border-dark/30 select-none">
+  {/* Left: Title with accent on "Strafe" */}
   <div>
-    <h1 className="text-3xl font-bold text-bright">
+    <h1 className="text-3xl font-bold text-bright drop-shadow-lg">
       PatrikZero's <span className="text-accent">Strafe Evaluation</span>
     </h1>
   </div>
 
-  <div className="flex items-center gap-8">
+  {/* Right: All controls in one clean horizontal row */}
+  <div className="flex items-center gap-6">
     {/* Volume */}
     <div className="flex items-center gap-3">
       <span className="text-bright/70 text-sm font-medium">Vol:</span>
@@ -326,15 +328,15 @@ function App() {
       />
     </div>
 
-    {/* Count only on LMB - fixed single line */}
-    <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-bright">
+    {/* Count only on LMB - forced single line */}
+    <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-bright whitespace-nowrap">
       <input 
         type="checkbox" 
         checked={countOnlyLMB()} 
         onChange={e => setCountOnlyLMB(e.target.checked)} 
         className="w-5 h-5 accent-primary cursor-pointer" 
       />
-      <span>Count only on LMB</span>
+      <span className="font-medium">Count only on LMB</span>
     </label>
 
     {/* Sound toggles */}
@@ -342,25 +344,26 @@ function App() {
       <span className="text-bright/70 font-medium">Sound:</span>
       <div className="flex gap-4">
         {Object.keys(soundEnabled()).map(t => (
-          <label key={t} className="flex items-center gap-1.5 cursor-pointer text-bright hover:text-white">
+          <label key={t} className="flex items-center gap-1 cursor-pointer text-bright">
             <input 
               type="checkbox" 
               checked={soundEnabled()[t]} 
               onChange={e => setSoundEnabled(prev => ({ ...prev, [t]: e.target.checked }))} 
-              className="accent-primary w-4 h-4" 
+              className="accent-primary"
             />
-            <span className="text-sm">{t}</span>
+            <span>{t} 🔊</span>
           </label>
         ))}
       </div>
     </div>
 
-    {/* Bright Mode Button */}
+    {/* Bright Mode Button - green like the screenshot */}
     <button 
       onClick={toggleTheme} 
-      class="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#4ade80] hover:bg-[#22c55e] text-dark font-semibold shadow-md transition-all active:scale-95"
+      class="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#88a56f] hover:bg-[#95d26f] text-white font-medium shadow-md transition-all active:scale-95"
     >
-      {isDark() ? '☀️' : '🌙'} Bright Mode
+      {isDark() ? '☀️' : '🌙'} 
+      <span>Bright Mode</span>
     </button>
   </div>
 </div>
