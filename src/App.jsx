@@ -59,21 +59,19 @@ function getStats(duration_array) {
   };
 }
 
-function getOccurance(duration_array) {
+function getOccurance(duration_array, binSize = 5) {
   if (!duration_array || duration_array.length === 0) {
     return new Array(81).fill(0);
   }
 
-  let out = new Array(81).fill(0);
+  const out = new Array(81).fill(0);
 
   duration_array.forEach(x => {
-    let n;
-    if (x < 0) {
-      n = Math.floor(Math.abs(x) / 5000);
-      if (n < 40) out[40 - n] += 1;
-    } else {
-      n = Math.ceil(x / 5000);
-      if (n < 40) out[40 + n] += 1;
+    const bin = Math.round(x / binSize);
+    const index = 40 + bin;
+
+    if (index >= 0 && index < 81) {
+      out[index] += 1;
     }
   });
 
@@ -81,14 +79,15 @@ function getOccurance(duration_array) {
 }
 
 const MyChart = (props) => {
-  const labels = Array.from({ length: 101 }, (_, i) => (i - 50) * 4);
-
+  const binSize = 5; // Round to nearest 5ms bin
+  const labels = Array.from({ length: 81 }, (_, i) => (i - 40) * binSize);
+  
   const [chartData, setChartData] = createSignal({
     labels: labels,
     datasets: [
-      { label: 'Early', data: getOccurance([]), borderRadius: 5, backgroundColor: "#8cb5a8" },
-      { label: 'Late', data: getOccurance([]), borderRadius: 5, backgroundColor: "#a5c5ae" },
-      { label: 'Perfect', data: getOccurance([]), borderRadius: 5, backgroundColor: "#b5ac8c" },
+      { label: 'Early', data: getOccurance([], binSize), borderRadius: 5, backgroundColor: "#8cb5a8" },
+      { label: 'Late', data: getOccurance([], binSize), borderRadius: 5, backgroundColor: "#a5c5ae" },
+      { label: 'Perfect', data: getOccurance([], binSize), borderRadius: 5, backgroundColor: "#b5ac8c" },
     ],
   });
 
@@ -102,9 +101,9 @@ const MyChart = (props) => {
     setChartData({
       labels: labels,
       datasets: [
-        { label: 'Early', data: getOccurance(earlyStrafes), borderRadius: 5, backgroundColor: "#8cb5a8" },
-        { label: 'Late', data: getOccurance(lateStrafes), borderRadius: 5, backgroundColor: "#a5c5ae" },
-        { label: 'Perfect', data: getOccurance(perfectStrafes), borderRadius: 5, backgroundColor: "#b5ac8c" },
+        { label: 'Early', data: getOccurance(earlyStrafes, binSize), borderRadius: 5, backgroundColor: "#8cb5a8" },
+        { label: 'Late', data: getOccurance(lateStrafes, binSize), borderRadius: 5, backgroundColor: "#a5c5ae" },
+        { label: 'Perfect', data: getOccurance(perfectStrafes, binSize), borderRadius: 5, backgroundColor: "#b5ac8c" },
       ],
     });
   });
