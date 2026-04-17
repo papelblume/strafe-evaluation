@@ -209,6 +209,7 @@ function WASD() {
 }
 
 function App() {
+  const [totalStrafes, setTotalStrafes] = createSignal([]);
   const [earlyStrafes, setEarlyStrafes] = createSignal([]);
   const [goodStrafes, setGoodStrafes] = createSignal([]);
   const [perfectStrafes, setPerfectStrafes] = createSignal([]);
@@ -257,6 +258,7 @@ function App() {
       setGoodStrafes([]); 
       setPerfectStrafes([]); 
       setLateStrafes([]);
+      setTotalStrafes([]);
     });
   }
 
@@ -276,6 +278,8 @@ function App() {
             else if (type === "Good") setGoodStrafes(a => [strafeObj, ...a]);
             else if (type === "Perfect") setPerfectStrafes(a => [strafeObj, ...a]);
             else if (type === "Late") setLateStrafes(a => [strafeObj, ...a]);
+            
+            setTotalStrafes(a => [strafe, ...a])
           });
           playBeep(type);
         }
@@ -403,23 +407,15 @@ function App() {
         <WASD />
       </div>
 
-      {/* === IMPROVED HISTORY BAR (from the second file's style) === */}
-      <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3 scrollbar-hide">
-        <For each={(() => {
-          const combined = [
-            ...earlyStrafes().map(s => ({ type: "Early", duration: s.duration })),
-            ...goodStrafes().map(s => ({ type: "Good", duration: s.duration })),
-            ...perfectStrafes().map(s => ({ type: "Perfect", duration: s.duration })),
-            ...lateStrafes().map(s => ({ type: "Late", duration: s.duration }))
-          ];
+      {/* HISTORY BAR */}
+      <div className="flex  flex-row p-2 bg-accent/25 h-20 overflow-clip  w-full">
 
-          return combined
-            .map((item, index) => ({ ...item, originalIndex: index }))
-            .sort((a, b) => b.originalIndex - a.originalIndex)
-            .slice(0, 100);
-        })()}>
-          {(strafe) => <StrafePill type={strafe.type} duration={strafe.duration} />}
-        </For>
+        <For each={totalStrafes()}>{(strafe, i) =>
+          <div className="flex shadow-md select-none flex-col border-bright/75 border-t bg-secondary/45 rounded-md  justify-center items-center  min-w-16 mr-2 ">
+            <p className="font-bold text-center">{strafe.type}</p>
+            <p className="text-center">{draw_time(strafe.duration)}</p>
+          </div>
+        }</For>
       </div>
     </div>
   );
