@@ -20,8 +20,8 @@
     "windows": [
       {
         "title": "PatrikZero's Strafe Evaluation",
-        "width": 930,
-        "height": 700,
+        "width": 1280,
+        "height": 820,
         "resizable": false
       }
     ],
