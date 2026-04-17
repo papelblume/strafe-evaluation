@@ -96,7 +96,12 @@ function StatsTable(props) {
           <td className="px-3">{p(props.late.samples)}%</td>
         </tr>
         <tr className="font-medium border-t border-dark/30 dark:border-bright/30 bg-secondary/30 dark:bg-secondary/40">
-          <th className="px-4">LMB Pressed %</th>
+          <th className="px-4 relative group">
+            Strafe+LMB
+            <div className="absolute hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-2 rounded shadow-lg -top-10 left-1/2 -translate-x-1/2 w-56 text-center z-50 pointer-events-none">
+              Counts only strafes where Left Mouse Button (LMB) was pressed during the strafe
+            </div>
+          </th>
           <td className="px-3">{props.lmbFired.samples}</td>
           <td className="px-3">{p(props.lmbFired.early)}%</td>
           <td className="px-3">{p(props.lmbFired.perfect)}%</td>
