@@ -30,18 +30,36 @@ fn eval_understrafe(
     last_strafe_time: &mut Option<Instant>,
 ) {
     let time_passed_ms = elapsed.as_millis() as u128;
-    if LeftButton.is_pressed() { *lmb_during = true; }
-
-    if let Some(last) = last_strafe_time {
-        if last.elapsed().as_millis() as u128 < SPAM_COOLDOWN_MS { *released_time = None; return; }
+    if LeftButton.is_pressed() {
+        *lmb_during = true;
     }
 
-    let strafe_type = if time_passed_ms <= PERFECT_MAX_MS { "Perfect" }
-    else if time_passed_ms <= GOOD_MAX_MS { "Good" }
-    else if time_passed_ms <= LATE_MAX_MS { "Late" }
-    else { return; };
+    // Anti-spam protection
+    if let Some(last) = last_strafe_time {
+        if (last.elapsed().as_millis() as u128) < SPAM_COOLDOWN_MS {
+            *released_time = None;
+            return;
+        }
+    }
 
-    let _ = app.emit_all("strafe", Payload { strafe_type: strafe_type.into(), duration: time_passed_ms, lmb_pressed: *lmb_during });
+    let strafe_type = if time_passed_ms <= PERFECT_MAX_MS {
+        "Perfect"
+    } else if time_passed_ms <= GOOD_MAX_MS {
+        "Good"
+    } else if time_passed_ms <= LATE_MAX_MS {
+        "Late"
+    } else {
+        return;
+    };
+
+    let _ = app.emit_all(
+        "strafe",
+        Payload {
+            strafe_type: strafe_type.into(),
+            duration: time_passed_ms,
+            lmb_pressed: *lmb_during,
+        },
+    );
 
     *released_time = None;
     *lmb_during = false;
@@ -56,14 +74,19 @@ fn eval_overstrafe(
     last_strafe_time: &mut Option<Instant>,
 ) {
     let time_passed_ms = elapsed.as_millis() as u128;
-    if LeftButton.is_pressed() { *lmb_during = true; }
+    if LeftButton.is_pressed() {
+        *lmb_during = true;
+    }
 
     if time_passed_ms <= LATE_MAX_MS {
-        let _ = app.emit_all("strafe", Payload {
-            strafe_type: "Early".into(),
-            duration: time_passed_ms,
-            lmb_pressed: *lmb_during,
-        });
+        let _ = app.emit_all(
+            "strafe",
+            Payload {
+                strafe_type: "Early".into(),
+                duration: time_passed_ms,
+                lmb_pressed: *lmb_during,
+            },
+        );
     }
 
     *both_pressed_time = None;
@@ -83,6 +106,7 @@ fn main() {
     tauri::Builder::default()
         .setup(|app| {
             let handle = app.handle();
+
             tauri::async_runtime::spawn(async move {
                 let mut left_pressed = false;
                 let mut right_pressed = false;
@@ -101,7 +125,7 @@ fn main() {
                 loop {
                     sleep(Duration::from_millis(2));
 
-                    // W/S
+                    // W/S detection
                     if w_pressed && !WKey.is_pressed() { w_pressed = false; }
                     if s_pressed && !SKey.is_pressed() { s_pressed = false; }
                     if !w_pressed && WKey.is_pressed() { w_pressed = true; }
@@ -114,7 +138,7 @@ fn main() {
                         right_released_time = Some(SystemTime::now());
                     }
 
-                    // A released (AZERTY)
+                    // A released (AZERTY support)
                     if left_pressed
                         && (is_azerty || !AKey.is_pressed())
                         && (!is_azerty || !QKey.is_pressed())
@@ -126,13 +150,23 @@ fn main() {
                     }
 
                     // A pressed
-                    if ((!is_azerty && AKey.is_pressed()) || (is_azerty && QKey.is_pressed()) || LeftKey.is_pressed()) && !left_pressed {
+                    if ((!is_azerty && AKey.is_pressed()) || (is_azerty && QKey.is_pressed()) || LeftKey.is_pressed())
+                        && !left_pressed
+                    {
                         left_pressed = true;
                         let _ = handle.emit_all("a-pressed", ());
+
                         if !w_pressed && !s_pressed {
                             if let Some(x) = right_released_time {
                                 if let Ok(elapsed) = x.elapsed() {
-                                    eval_understrafe(elapsed, &mut right_released_time, handle.clone(), &mut both_pressed_time, &mut lmb_during_strafe, &mut last_strafe_time);
+                                    eval_understrafe(
+                                        elapsed,
+                                        &mut right_released_time,
+                                        handle.clone(),
+                                        &mut both_pressed_time,
+                                        &mut lmb_during_strafe,
+                                        &mut last_strafe_time,
+                                    );
                                 }
                             }
                         }
@@ -142,25 +176,40 @@ fn main() {
                     if (DKey.is_pressed() || RightKey.is_pressed()) && !right_pressed {
                         right_pressed = true;
                         let _ = handle.emit_all("d-pressed", ());
+
                         if !w_pressed && !s_pressed {
                             if let Some(x) = left_released_time {
                                 if let Ok(elapsed) = x.elapsed() {
-                                    eval_understrafe(elapsed, &mut left_released_time, handle.clone(), &mut both_pressed_time, &mut lmb_during_strafe, &mut last_strafe_time);
+                                    eval_understrafe(
+                                        elapsed,
+                                        &mut left_released_time,
+                                        handle.clone(),
+                                        &mut both_pressed_time,
+                                        &mut lmb_during_strafe,
+                                        &mut last_strafe_time,
+                                    );
                                 }
                             }
                         }
                     }
 
-                    // Overlap detection (Early)
+                    // Overlap (Early) detection
                     if left_pressed && right_pressed && both_pressed_time.is_none() {
                         both_pressed_time = Some(SystemTime::now());
                         lmb_during_strafe = LeftButton.is_pressed();
                     }
+
                     if (!left_pressed || !right_pressed) && both_pressed_time.is_some() {
                         if let Some(start) = both_pressed_time {
                             if let Ok(elapsed) = start.elapsed() {
                                 if !w_pressed && !s_pressed {
-                                    eval_overstrafe(elapsed, &mut both_pressed_time, handle.clone(), &mut lmb_during_strafe, &mut last_strafe_time);
+                                    eval_overstrafe(
+                                        elapsed,
+                                        &mut both_pressed_time,
+                                        handle.clone(),
+                                        &mut lmb_during_strafe,
+                                        &mut last_strafe_time,
+                                    );
                                 } else {
                                     both_pressed_time = None;
                                     lmb_during_strafe = false;
@@ -169,12 +218,15 @@ fn main() {
                         }
                     }
 
-                    // Continuous LMB tracking
-                    if (both_pressed_time.is_some() || left_released_time.is_some() || right_released_time.is_some()) {
-                        if LeftButton.is_pressed() { lmb_during_strafe = true; }
+                    // Continuous LMB tracking during strafe window
+                    if both_pressed_time.is_some() || left_released_time.is_some() || right_released_time.is_some() {
+                        if LeftButton.is_pressed() {
+                            lmb_during_strafe = true;
+                        }
                     }
                 }
             });
+
             Ok(())
         })
         .run(tauri::generate_context!())
