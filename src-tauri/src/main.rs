@@ -21,12 +21,6 @@ const GOOD_MAX_MS: u128 = 80;
 const LATE_MAX_MS: u128 = 200;
 const SPAM_COOLDOWN_MS: u128 = 60;
 
-fn is_modifier_pressed() -> bool {
-    ShiftKey.is_pressed() || CtrlKey.is_pressed() || // Left + Right
-    LShiftKey.is_pressed() || RShiftKey.is_pressed() ||
-    LControlKey.is_pressed() || RControlKey.is_pressed()
-}
-
 fn eval_understrafe(
     elapsed: Duration,
     released_time: &mut Option<SystemTime>,
@@ -46,12 +40,6 @@ fn eval_understrafe(
             *released_time = None;
             return;
         }
-    }
-
-    // NEW: Ignore strafe if Shift or Ctrl is pressed
-    if is_modifier_pressed() {
-        *released_time = None;
-        return;
     }
 
     let strafe_type = if time_passed_ms <= PERFECT_MAX_MS {
@@ -90,13 +78,6 @@ fn eval_overstrafe(
         *lmb_during = true;
     }
 
-    // NEW: Ignore strafe if Shift or Ctrl is pressed
-    if is_modifier_pressed() {
-        *both_pressed_time = None;
-        *lmb_during = false;
-        return;
-    }
-
     if time_passed_ms <= LATE_MAX_MS {
         let _ = app.emit_all(
             "strafe",
@@ -131,6 +112,8 @@ fn main() {
                 let mut right_pressed = false;
                 let mut w_pressed = false;
                 let mut s_pressed = false;
+                let mut shift_pressed = false;   // NEW
+                let mut ctrl_pressed = false;    // NEW
 
                 let mut both_pressed_time: Option<SystemTime> = None;
                 let mut right_released_time: Option<SystemTime> = None;
@@ -149,6 +132,20 @@ fn main() {
                     if s_pressed && !SKey.is_pressed() { s_pressed = false; }
                     if !w_pressed && WKey.is_pressed() { w_pressed = true; }
                     if !s_pressed && SKey.is_pressed() { s_pressed = true; }
+
+                    // Shift / Ctrl detection (ignore strafes while sprinting or crouching)
+                    if shift_pressed && !(LShiftKey.is_pressed() || RShiftKey.is_pressed()) {
+                        shift_pressed = false;
+                    }
+                    if ctrl_pressed && !(LControlKey.is_pressed() || RControlKey.is_pressed()) {
+                        ctrl_pressed = false;
+                    }
+                    if !shift_pressed && (LShiftKey.is_pressed() || RShiftKey.is_pressed()) {
+                        shift_pressed = true;
+                    }
+                    if !ctrl_pressed && (LControlKey.is_pressed() || RControlKey.is_pressed()) {
+                        ctrl_pressed = true;
+                    }
 
                     // D released
                     if right_pressed && !DKey.is_pressed() && !RightKey.is_pressed() {
@@ -175,7 +172,8 @@ fn main() {
                         left_pressed = true;
                         let _ = handle.emit_all("a-pressed", ());
 
-                        if !w_pressed && !s_pressed {
+                        // Only count strafe if W, S, Shift, and Ctrl are NOT pressed
+                        if !w_pressed && !s_pressed && !shift_pressed && !ctrl_pressed {
                             if let Some(x) = right_released_time {
                                 if let Ok(elapsed) = x.elapsed() {
                                     eval_understrafe(
@@ -196,7 +194,8 @@ fn main() {
                         right_pressed = true;
                         let _ = handle.emit_all("d-pressed", ());
 
-                        if !w_pressed && !s_pressed {
+                        // Only count strafe if W, S, Shift, and Ctrl are NOT pressed
+                        if !w_pressed && !s_pressed && !shift_pressed && !ctrl_pressed {
                             if let Some(x) = left_released_time {
                                 if let Ok(elapsed) = x.elapsed() {
                                     eval_understrafe(
@@ -221,7 +220,8 @@ fn main() {
                     if (!left_pressed || !right_pressed) && both_pressed_time.is_some() {
                         if let Some(start) = both_pressed_time {
                             if let Ok(elapsed) = start.elapsed() {
-                                if !w_pressed && !s_pressed {
+                                // Only count strafe if W, S, Shift, and Ctrl are NOT pressed
+                                if !w_pressed && !s_pressed && !shift_pressed && !ctrl_pressed {
                                     eval_overstrafe(
                                         elapsed,
                                         &mut both_pressed_time,
