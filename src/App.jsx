@@ -31,12 +31,12 @@ function getStats(duration_array) {
 }
 
 function getOccurance(duration_array, binSize = 5) {
-  if (!duration_array || duration_array.length === 0) return new Array(81).fill(0);
-  const out = new Array(81).fill(0);
+  if (!duration_array || duration_array.length === 0) return new Array(61).fill(0);
+  const out = new Array(61).fill(0);
   duration_array.forEach(x => {
     const bin = Math.round(x / binSize);
-    const index = 40 + bin;
-    if (index >= 0 && index < 81) out[index] += 1;
+    const index = 30 + bin;
+    if (index >= 0 && index < 61) out[index] += 1;
   });
   return out;
 }
@@ -114,7 +114,7 @@ function StatsTable(props) {
 
 const MyChart = (props) => {
   const binSize = 5;
-  const labels = createMemo(() => Array.from({ length: 81 }, (_, i) => (i - 40) * binSize));
+  const labels = createMemo(() => Array.from({ length: 61 }, (_, i) => (i - 30) * binSize));
 
   const [chartData, setChartData] = createSignal({
     labels: labels(),
@@ -179,9 +179,9 @@ function WASD() {
   return (
     <div className="flex group justify-center items-center w-full h-full">
       <div className="flex flex-col basis-0 flex-grow items-end opacity-0 -translate-x-2 duration-200 group-hover:opacity-100 group-hover:translate-x-0">
-        <button className="wasd-button text-white bg-secondary" onClick={simulateEarly}>Early</button>
-        <button className="wasd-button text-white bg-accent" onClick={simulateLate}>Late</button>
-        <button className="wasd-button text-white bg-[#34d27a]" onClick={simulatePerfect}>Perfect</button>
+        <button className="wasd-button text-white" style={{backgroundColor: "#f16a5c"}} onClick={simulateEarly}>Early</button>
+        <button className="wasd-button text-white" style={{backgroundColor: "#f7b46f"}} onClick={simulateLate}>Late</button>
+        <button className="wasd-button text-white" style={{backgroundColor: "#34d27a"}} onClick={simulatePerfect}>Perfect</button>
       </div>
       <div className="flex justify-center basis-0 flex-grow">
         <div className="select-none pointer-events-none text-dark dark:text-bright flex justify-between w-40 text-center font-bold text-xl">
@@ -322,8 +322,8 @@ function App() {
 
         {/* Center: Controls */}
         <div className="flex flex-col items-center gap-3 flex-1 max-w-md">
-          {/* Row 1: Volume + Count only on LMB */}
-          <div className="flex items-center gap-6 w-full justify-center">
+          {/* Row 1: Volume + Count only on LMB (adjusted to match Row 2 width) */}
+          <div className="flex items-center gap-6 justify-center">
             <div className="flex items-center gap-2 text-xs">
               <span className="font-medium text-bright/70 whitespace-nowrap">Vol:</span>
               <input
