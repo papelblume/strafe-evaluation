@@ -30,13 +30,13 @@ function getStats(duration_array) {
   return { median, min: sorted[0], max: sorted[sorted.length - 1], average: o.average, std_deviation: o.std_deviation, samples: duration_array.length };
 }
 
-function getOccurance(duration_array, binSize = 5) {
-  if (!duration_array || duration_array.length === 0) return new Array(61).fill(0);
-  const out = new Array(61).fill(0);
+function getOccurance(duration_array, binSize = 2) {
+  if (!duration_array || duration_array.length === 0) return new Array(151).fill(0);
+  const out = new Array(151).fill(0);
   duration_array.forEach(x => {
     const bin = Math.round(x / binSize);
     const index = 20 + bin;
-    if (index >= 0 && index < 61) out[index] += 1;
+    if (index >= 0 && index < 151) out[index] += 1;
   });
   return out;
 }
@@ -96,7 +96,7 @@ function StatsTable(props) {
           <td className="px-3">{p(props.late.samples)}%</td>
         </tr>
         <tr className="font-medium border-t border-dark/30 dark:border-bright/30 bg-secondary/30 dark:bg-secondary/40">
-          <th className="px-4">Pressing LMB %</th>
+          <th className="px-4">LMB Pressed %</th>
           <td className="px-3">{props.lmbFired.samples}</td>
           <td className="px-3">{p(props.lmbFired.early)}%</td>
           <td className="px-3">{p(props.lmbFired.perfect)}%</td>
@@ -108,8 +108,8 @@ function StatsTable(props) {
 }
 
 const MyChart = (props) => {
-  const binSize = 5;
-  const labels = createMemo(() => Array.from({ length: 61 }, (_, i) => (i - 20) * binSize));
+  const binSize = 2;
+  const labels = createMemo(() => Array.from({ length: 151 }, (_, i) => (i - 20) * binSize));
 
   const [chartData, setChartData] = createSignal({
     labels: labels(),
