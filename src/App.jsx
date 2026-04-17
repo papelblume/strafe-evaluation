@@ -303,17 +303,17 @@ function App() {
 
   return (
     <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
-      {/* Modern header matching the screenshot style */}
-<div className="flex items-center justify-between px-6 py-4 bg-dark dark:bg-dark border-b border-dark/30 select-none">
+      {/* Clean header matching the screenshot style */}
+<div className="flex items-center justify-between px-6 py-4 bg-dark border-b border-dark/30 select-none">
   <div>
-    <h1 className="text-3xl font-bold text-bright drop-shadow-lg">
+    <h1 className="text-3xl font-bold text-bright">
       PatrikZero's <span className="text-accent">Strafe Evaluation</span>
     </h1>
   </div>
 
-  <div className="flex items-center gap-6">
+  <div className="flex items-center gap-8">
     {/* Volume */}
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
       <span className="text-bright/70 text-sm font-medium">Vol:</span>
       <input 
         type="range" 
@@ -326,7 +326,7 @@ function App() {
       />
     </div>
 
-    {/* Count only on LMB */}
+    {/* Count only on LMB - fixed single line */}
     <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-bright">
       <input 
         type="checkbox" 
@@ -340,28 +340,27 @@ function App() {
     {/* Sound toggles */}
     <div className="flex items-center gap-4 text-sm">
       <span className="text-bright/70 font-medium">Sound:</span>
-      <div className="flex gap-3">
+      <div className="flex gap-4">
         {Object.keys(soundEnabled()).map(t => (
-          <label key={t} className="flex items-center gap-1 cursor-pointer text-bright hover:text-bright/80">
+          <label key={t} className="flex items-center gap-1.5 cursor-pointer text-bright hover:text-white">
             <input 
               type="checkbox" 
               checked={soundEnabled()[t]} 
               onChange={e => setSoundEnabled(prev => ({ ...prev, [t]: e.target.checked }))} 
-              className="accent-primary"
+              className="accent-primary w-4 h-4" 
             />
-            <span>{t}</span>
+            <span className="text-sm">{t}</span>
           </label>
         ))}
       </div>
     </div>
 
-    {/* Theme Button */}
+    {/* Bright Mode Button */}
     <button 
       onClick={toggleTheme} 
-      class="flex items-center gap-2 px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md transition-all active:scale-95"
+      class="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#4ade80] hover:bg-[#22c55e] text-dark font-semibold shadow-md transition-all active:scale-95"
     >
-      {isDark() ? '☀️' : '🌙'} 
-      <span>{isDark() ? 'Bright Mode' : 'Dark Mode'}</span>
+      {isDark() ? '☀️' : '🌙'} Bright Mode
     </button>
   </div>
 </div>
