@@ -44,7 +44,6 @@ function getOccurance(duration_array, binSize = 5) {
 function StrafePill(props) {
   const colorMap = {
     Early: "#f16a5c",
-    Good: "#95d26f",
     Perfect: "#34d27a",
     Late: "#f7b46f"
   };
@@ -62,7 +61,6 @@ function StatRow(props) {
       <th>{props.label}</th>
       <td>{draw_time(props.alls)}</td>
       <td>{draw_time(props.early)}</td>
-      <td>{draw_time(props.good)}</td>
       <td>{draw_time(props.perfect)}</td>
       <td>{draw_time(props.late)}</td>
     </tr>
@@ -80,20 +78,18 @@ function StatsTable(props) {
           <th></th>
           <th className="w-16">All</th>
           <th className="w-16">Early</th>
-          <th className="w-16">Good</th>
           <th className="w-16">Perfect</th>
           <th className="w-16">Late</th>
         </tr>
-        <StatRow label="Median" alls={props.alls.median} early={props.early.median} good={props.good.median} perfect={props.perfect.median} late={props.late.median} />
-        <StatRow label="Average" alls={props.alls.average} early={props.early.average} good={props.good.average} perfect={props.perfect.average} late={props.late.average} />
-        <StatRow label="Min" alls={props.alls.min} early={props.early.min} good={props.good.min} perfect={props.perfect.min} late={props.late.min} />
-        <StatRow label="Max" alls={props.alls.max} early={props.early.max} good={props.good.max} perfect={props.perfect.max} late={props.late.max} />
-        <StatRow label="Std. Deviation" alls={props.alls.std_deviation} early={props.early.std_deviation} good={props.good.std_deviation} perfect={props.perfect.std_deviation} late={props.late.std_deviation} />
+        <StatRow label="Median" alls={props.alls.median} early={props.early.median} perfect={props.perfect.median} late={props.late.median} />
+        <StatRow label="Average" alls={props.alls.average} early={props.early.average} perfect={props.perfect.average} late={props.late.average} />
+        <StatRow label="Min" alls={props.alls.min} early={props.early.min} perfect={props.perfect.min} late={props.late.min} />
+        <StatRow label="Max" alls={props.alls.max} early={props.early.max} perfect={props.perfect.max} late={props.late.max} />
+        <StatRow label="Std. Deviation" alls={props.alls.std_deviation} early={props.early.std_deviation} perfect={props.perfect.std_deviation} late={props.late.std_deviation} />
         <tr>
           <th>Samples</th>
           <td>{props.alls.samples}</td>
           <td>{props.early.samples}</td>
-          <td>{props.good.samples}</td>
           <td>{props.perfect.samples}</td>
           <td>{props.late.samples}</td>
         </tr>
@@ -101,7 +97,6 @@ function StatsTable(props) {
           <th>%</th>
           <td className="text-bright/70">-</td>
           <td>{p(props.early.samples)}%</td>
-          <td>{p(props.good.samples)}%</td>
           <td>{p(props.perfect.samples)}%</td>
           <td>{p(props.late.samples)}%</td>
         </tr>
@@ -109,7 +104,6 @@ function StatsTable(props) {
           <th>Fired (LMB)</th>
           <td>{props.lmbFired.samples}</td>
           <td>{p(props.lmbFired.early)}%</td>
-          <td>{p(props.lmbFired.good)}%</td>
           <td>{p(props.lmbFired.perfect)}%</td>
           <td>{p(props.lmbFired.late)}%</td>
         </tr>
@@ -126,7 +120,6 @@ const MyChart = (props) => {
     labels: labels(),
     datasets: [
       { label: 'Early', data: [], borderRadius: 5, backgroundColor: "#f16a5c" },
-      { label: 'Good', data: [], borderRadius: 5, backgroundColor: "#95d26f" },
       { label: 'Perfect', data: [], borderRadius: 5, backgroundColor: "#34d27a" },
       { label: 'Late', data: [], borderRadius: 5, backgroundColor: "#f7b46f" },
     ],
@@ -139,7 +132,6 @@ const MyChart = (props) => {
       labels: labels(),
       datasets: [
         { label: 'Early', data: getOccurance(props.earlyStrafes, binSize), borderRadius: 5, backgroundColor: "#f16a5c" },
-        { label: 'Good', data: getOccurance(props.goodStrafes, binSize), borderRadius: 5, backgroundColor: "#95d26f" },
         { label: 'Perfect', data: getOccurance(props.perfectStrafes, binSize), borderRadius: 5, backgroundColor: "#34d27a" },
         { label: 'Late', data: getOccurance(props.lateStrafes, binSize), borderRadius: 5, backgroundColor: "#f7b46f" },
       ],
@@ -182,16 +174,14 @@ function WASD() {
 
   async function simulateEarly() { setAPressed(true); setTimeout(() => setDPressed(true), 500); setTimeout(() => setAPressed(false), 850); setTimeout(() => setDPressed(false), 1350); }
   async function simulateLate() { setAPressed(true); setTimeout(() => setAPressed(false), 500); setTimeout(() => setDPressed(true), 850); setTimeout(() => setDPressed(false), 1350); }
-  async function simulatePerfect() { const delay = 20; setAPressed(true); setTimeout(() => setAPressed(false), 500); setTimeout(() => setDPressed(true), 500 + delay); setTimeout(() => setDPressed(false), 1000 + delay); }
-  async function simulateGood() { const delay = 60; setAPressed(true); setTimeout(() => setAPressed(false), 500); setTimeout(() => setDPressed(true), 500 + delay); setTimeout(() => setDPressed(false), 1000 + delay); }
+  async function simulatePerfect() { const delay = 40; setAPressed(true); setTimeout(() => setAPressed(false), 500); setTimeout(() => setDPressed(true), 500 + delay); setTimeout(() => setDPressed(false), 1000 + delay); }
 
   return (
     <div className="flex group justify-center items-center w-full h-full">
       <div className="flex flex-col basis-0 flex-grow items-end opacity-0 -translate-x-2 duration-200 group-hover:opacity-100 group-hover:translate-x-0">
         <button className="wasd-button text-white bg-secondary" onClick={simulateEarly}>Early</button>
         <button className="wasd-button text-white bg-accent" onClick={simulateLate}>Late</button>
-        <button className="wasd-button text-white bg-[#b5ac8c]" onClick={simulatePerfect}>Perfect</button>
-        <button className="wasd-button text-white bg-[#b5ac8c]" onClick={simulateGood}>Good</button>
+        <button className="wasd-button text-white bg-[#34d27a]" onClick={simulatePerfect}>Perfect</button>
       </div>
       <div className="flex justify-center basis-0 flex-grow">
         <div className="select-none pointer-events-none text-dark dark:text-bright flex justify-between w-40 text-center font-bold text-xl">
@@ -213,12 +203,11 @@ function App() {
 
   const [countOnlyLMB, setCountOnlyLMB] = createSignal(false);
   const [isDark, setIsDark] = createSignal(false);
-  const [soundEnabled, setSoundEnabled] = createSignal({ Early: true, Good: true, Perfect: true, Late: true });
+  const [soundEnabled, setSoundEnabled] = createSignal({ Early: true, Perfect: true, Late: true });
   const [volume, setVolume] = createSignal(0.6);
 
   const colorMap = {
     Early: "#f16a5c",
-    Good: "#95d26f",
     Perfect: "#34d27a",
     Late: "#f7b46f"
   };
@@ -246,7 +235,7 @@ function App() {
     const osc = audioContext.createOscillator();
     const gain = audioContext.createGain();
     osc.connect(gain).connect(audioContext.destination);
-    osc.frequency.setValueAtTime(type === "Perfect" ? 880 : type === "Good" ? 660 : type === "Early" ? 440 : 220, audioContext.currentTime);
+    osc.frequency.setValueAtTime(type === "Perfect" ? 880 : type === "Early" ? 440 : 220, audioContext.currentTime);
     gain.gain.value = volume();
     osc.start();
     gain.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.15);
@@ -268,7 +257,7 @@ function App() {
         const finalDuration = type === "Early" ? -duration : duration;
         const strafeObj = { type, duration: finalDuration, lmb_pressed };
 
-        const shouldCount = !countOnlyLMB() || lmb_pressed || type === "Perfect" || type === "Good";
+        const shouldCount = !countOnlyLMB() || lmb_pressed || type === "Perfect";
 
         if (shouldCount) {
           setAllStrafes(prev => [strafeObj, ...prev]); // Most recent first
@@ -284,14 +273,12 @@ function App() {
   const allStats = createMemo(() => {
     const allDurations = allStrafes().map(s => s.duration);
     const earlyDurations = allStrafes().filter(s => s.type === "Early").map(s => s.duration);
-    const goodDurations = allStrafes().filter(s => s.type === "Good").map(s => s.duration);
     const perfectDurations = allStrafes().filter(s => s.type === "Perfect").map(s => s.duration);
     const lateDurations = allStrafes().filter(s => s.type === "Late").map(s => s.duration);
 
     return {
       alls: getStats(allDurations),
       early: getStats(earlyDurations),
-      good: getStats(goodDurations),
       perfect: getStats(perfectDurations),
       late: getStats(lateDurations)
     };
@@ -299,14 +286,12 @@ function App() {
 
   const lmbFired = createMemo(() => {
     const earlyLMB = allStrafes().filter(s => s.type === "Early" && s.lmb_pressed).length;
-    const goodLMB = allStrafes().filter(s => s.type === "Good" && s.lmb_pressed).length;
     const perfectLMB = allStrafes().filter(s => s.type === "Perfect" && s.lmb_pressed).length;
     const lateLMB = allStrafes().filter(s => s.type === "Late" && s.lmb_pressed).length;
 
     return {
-      samples: earlyLMB + goodLMB + perfectLMB + lateLMB,
+      samples: earlyLMB + perfectLMB + lateLMB,
       early: earlyLMB,
-      good: goodLMB,
       perfect: perfectLMB,
       late: lateLMB
     };
@@ -385,15 +370,15 @@ function App() {
       </div>
 
       {/* Main Content - Shorter Statistics + Chart */}
-<div className="flex flex-col flex-grow p-3 gap-4 overflow-hidden">   {/* ← Changed */}
+<div className="flex flex-col flex-grow p-3 gap-4 overflow-hidden">   
 
   {/* Statistics + Chart Row - Now properly constrained */}
-  <div className="flex gap-4 flex-1 min-h-0">   {/* ← Important */}
+  <div className="flex gap-4 flex-1 min-h-0">   
 
     {/* Statistics Panel */}
     <div className="flex flex-col w-[50%] rounded-xl border border-white/30 dark:border-white/10 p-4 
                     bg-secondary/50 dark:bg-secondary/30 shadow-xl 
-                    max-h-[420px]">   {/* ← This is the main line that controls height */}
+                    max-h-[420px]">   
       <div className="flex justify-between mb-4">
         <h2 className="select-none text-2xl font-bold">Statistics</h2>
         <button onClick={resetStrafes} className="text-bright select-none shadow-md px-5 py-1 rounded-md bg-primary hover:scale-110 active:scale-95 transition-all">Reset</button>
@@ -402,7 +387,6 @@ function App() {
         <StatsTable
           alls={allStats().alls}
           early={allStats().early}
-          good={allStats().good}
           perfect={allStats().perfect}
           late={allStats().late}
           lmbFired={lmbFired()}
@@ -412,11 +396,10 @@ function App() {
 
     {/* Chart Panel */}
     <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl 
-                    max-h-[420px]">   {/* ← Same height control here */}
+                    max-h-[420px]">   
       <div className="flex-1 min-h-0 overflow-hidden">
         <MyChart
           earlyStrafes={allStrafes().filter(s => s.type === "Early").map(s => s.duration)}
-          goodStrafes={allStrafes().filter(s => s.type === "Good").map(s => s.duration)}
           perfectStrafes={allStrafes().filter(s => s.type === "Perfect").map(s => s.duration)}
           lateStrafes={allStrafes().filter(s => s.type === "Late").map(s => s.duration)}
         />
