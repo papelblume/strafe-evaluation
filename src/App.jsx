@@ -95,19 +95,24 @@ function StatsTable(props) {
           <td className="px-3">{p(props.perfect.samples)}%</td>
           <td className="px-3">{p(props.late.samples)}%</td>
         </tr>
-		  {/* Tooltip - positioned below to stay inside window */}
         <tr className="font-medium border-t border-dark/30 dark:border-bright/30 bg-secondary/30 dark:bg-secondary/40">
-          <th className="px-4 relative group">
-            Strafe+LMB
-			  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">      
-              Counts only strafes where Left Mouse Button (LMB) was pressed during the strafe
-            </div>
-          </th>
-          <td className="px-3">{props.lmbFired.samples}</td>
-          <td className="px-3">{p(props.lmbFired.early)}%</td>
-          <td className="px-3">{p(props.lmbFired.perfect)}%</td>
-          <td className="px-3">{p(props.lmbFired.late)}%</td>
-        </tr>
+  <th className="px-4 flex items-center gap-1.5 justify-start">
+    Strafe+LMB
+    <span className="relative group cursor-help">
+      <span className="text-xs text-dark/60 dark:text-bright/60 select-none">ⓘ</span>
+      
+      {/* Tooltip - positioned to the right to avoid being cut off */}
+      <div className="absolute hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-2 rounded shadow-lg 
+                      left-full ml-2 top-1/2 -translate-y-1/2 w-72 z-50 pointer-events-none">
+        Counts only strafes where Left Mouse Button (LMB) was pressed during the strafe
+      </div>
+    </span>
+  </th>
+  <td className="px-3">{props.lmbFired.samples}</td>
+  <td className="px-3">{p(props.lmbFired.early)}%</td>
+  <td className="px-3">{p(props.lmbFired.perfect)}%</td>
+  <td className="px-3">{p(props.lmbFired.late)}%</td>
+</tr>
       </tbody>
     </table>
   );
