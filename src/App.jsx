@@ -303,22 +303,19 @@ function App() {
 
   return (
     <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
-      {/* More compact header */}
-      <div className="flex justify-between items-center px-6 py-3 select-none">
+      {/* More compact & better organized header */}
+      <div className="flex justify-between items-start px-6 py-4 select-none border-b border-dark/10 dark:border-bright/10">
         <div className="flex justify-center items-center flex-1">
           <h1 className="mr-3 drop-shadow-lg py-2 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">PatrikZero's</h1>
           <h1 className="py-2 text-4xl font-bold text-center pointer-events-none">Strafe Evaluation</h1>
-        </div>
+      </div>
 
-        <div className="flex items-center gap-5">
-          {/* Count only on LMB moved here */}
-          <label className="flex items-center gap-2 cursor-pointer select-none text-sm">
-            <input type="checkbox" checked={countOnlyLMB()} onChange={e => setCountOnlyLMB(e.target.checked)} className="w-5 h-5 accent-primary cursor-pointer" />
-            <span className="font-medium">Count only on LMB</span>
-          </label>
-
-          <div className="flex gap-3 text-xs items-center">
-            <span className="font-medium text-bright/70">Sound:</span>
+      {/* Right side controls */}
+      <div className="flex flex-col items-end gap-3">
+        {/* Sound row */}
+        <div className="flex items-center gap-4">
+          <span className="font-medium text-bright/70 text-sm">Sound:</span>
+          <div className="flex gap-3 text-xs">
             {Object.keys(soundEnabled()).map(t => (
               <label key={t} className="flex items-center gap-1 cursor-pointer">
                 <input type="checkbox" checked={soundEnabled()[t]} onChange={e => setSoundEnabled(prev => ({ ...prev, [t]: e.target.checked }))} />
@@ -326,15 +323,24 @@ function App() {
               </label>
             ))}
           </div>
+        </div>
 
-          <div className="flex items-center gap-2 text-xs">
-            <span className="font-medium text-bright/70">Vol:</span>
-            <input type="range" min="0" max="1" step="0.01" value={volume()} onInput={e => setVolume(parseFloat(e.target.value))} className="w-24 accent-primary" />
+          {/* Second row: Count only on LMB + Volume + Theme */}
+          <div className="flex items-center gap-6">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-sm">
+              <input type="checkbox" checked={countOnlyLMB()} onChange={e => setCountOnlyLMB(e.target.checked)} className="w-5 h-5 accent-primary cursor-pointer" />
+              <span className="font-medium">Count only on LMB</span>
+            </label>
+
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-medium text-bright/70">Vol:</span>
+              <input type="range" min="0" max="1" step="0.01" value={volume()} onInput={e => setVolume(parseFloat(e.target.value))} className="w-28 accent-primary" />
+            </div>
+
+            <button onClick={toggleTheme} className="px-6 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95">
+              {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
+            </button>
           </div>
-
-          <button onClick={toggleTheme} class="px-6 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95">
-            {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
-          </button>
         </div>
       </div>
 
@@ -369,16 +375,15 @@ function App() {
         <WASD />
       </div>
 
-      {/* History bar unchanged in size */}
+      {/* History Bar */}
       <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3 scrollbar-hide">
-        <For each={(() => {
-          const combined = [...earlyStrafes(), ...goodStrafes(), ...perfectStrafes(), ...lateStrafes()];
-          return combined
-            .map((item, index) => ({ ...item, originalIndex: index }))
-            .sort((a, b) => b.originalIndex - a.originalIndex)
-            .slice(0, 100);
-        })()}>
-          {(strafe) => <StrafePill type={strafe.type} duration={strafe.duration} />}
+        <For each={totalStrafes()}>
+          {(strafe) => (
+            <div className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1">
+              <p className="font-bold text-center text-sm">{strafe.type}</p>
+              <p className="text-center text-sm">{draw_time(strafe.duration)}</p>
+            </div>
+          )}
         </For>
       </div>
     </div>
