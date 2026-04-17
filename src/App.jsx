@@ -5,7 +5,6 @@ import { Bar } from 'solid-chartjs';
 import { listen } from '@tauri-apps/api/event';
 
 function draw_time(time) {
-  // FIXED: now correctly handles milliseconds from Rust
   if (time < 0) return "-" + Math.abs(time).toFixed(0) + " ms";
   return time.toFixed(0) + " ms";
 }
@@ -101,7 +100,6 @@ function StatsTable(props) {
           <td>{p(props.perfect.samples)}%</td>
           <td>{p(props.late.samples)}%</td>
         </tr>
-        {/* NEW ROW: Fired during strafe (LMB) */}
         <tr className="font-medium border-t border-dark/30 dark:border-bright/30 bg-secondary/20 dark:bg-secondary/30">
           <th>Fired (LMB)</th>
           <td>{props.lmbFired.samples}</td>
@@ -157,7 +155,6 @@ const MyChart = (props) => {
 };
 
 function WASD() {
-  // ... (unchanged - same as your last version)
   const [aPressed, setAPressed] = createSignal(false);
   const [dPressed, setDPressed] = createSignal(false);
 
@@ -334,7 +331,6 @@ function App() {
       </div>
 
       <div className="justify-between flex-grow flex p-4 gap-4">
-        {/* Reverted to original Statistics panel */}
         <div className="flex flex-col rounded-xl border border-white/30 dark:border-white/10 p-4 w-[50%] bg-secondary/50 dark:bg-secondary/30 shadow-xl">
           <div className="flex justify-between mb-4">
             <h2 className="select-none text-2xl font-bold">Statistics</h2>
@@ -364,10 +360,20 @@ function App() {
         <WASD />
       </div>
 
+      {/* FIXED: History bar - newest on the LEFT */}
       <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3 scrollbar-hide">
         <For each={(() => {
-          const all = [...earlyStrafes(), ...goodStrafes(), ...perfectStrafes(), ...lateStrafes()];
-          return all.slice(0, 100);
+          const combined = [
+            ...earlyStrafes(),
+            ...goodStrafes(),
+            ...perfectStrafes(),
+            ...lateStrafes()
+          ];
+          // Sort by insertion order (newest first) using index trick
+          return combined
+            .map((item, index) => ({ ...item, originalIndex: index }))
+            .sort((a, b) => b.originalIndex - a.originalIndex)
+            .slice(0, 100);
         })()}>
           {(strafe) => <StrafePill type={strafe.type} duration={strafe.duration} />}
         </For>
