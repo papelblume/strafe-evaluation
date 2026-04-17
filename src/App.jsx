@@ -35,7 +35,7 @@ function getOccurance(duration_array, binSize = 5) {
   const out = new Array(61).fill(0);
   duration_array.forEach(x => {
     const bin = Math.round(x / binSize);
-    const index = 30 + bin;
+    const index = 20 + bin;
     if (index >= 0 && index < 61) out[index] += 1;
   });
   return out;
@@ -114,7 +114,7 @@ function StatsTable(props) {
 
 const MyChart = (props) => {
   const binSize = 5;
-  const labels = createMemo(() => Array.from({ length: 61 }, (_, i) => (i - 30) * binSize));
+  const labels = createMemo(() => Array.from({ length: 61 }, (_, i) => (i - 20) * binSize));
 
   const [chartData, setChartData] = createSignal({
     labels: labels(),
@@ -253,26 +253,27 @@ function App() {
   }
 
   // Listen for strafes from Tauri backend
-createEffect(() => {
-  let unlisten;
-  const setup = async () => {
-    unlisten = await listen('strafe', (event) => {
-      const { strafe_type: type, duration, lmb_pressed } = event.payload;
-      const finalDuration = type === "Early" ? -duration : duration;
-      const strafeObj = { type, duration: finalDuration, lmb_pressed };
+  createEffect(() => {
+    let unlisten;
+    const setup = async () => {
+      unlisten = await listen('strafe', (event) => {
+        const { strafe_type: type, duration, lmb_pressed } = event.payload;
+        const finalDuration = type === "Early" ? -duration : duration;
+        const strafeObj = { type, duration: finalDuration, lmb_pressed };
 
-      // Consistent behavior for ALL strafe types
-      const shouldCount = !countOnlyLMB() || lmb_pressed;
+        // Consistent behavior for ALL strafe types
+        const shouldCount = !countOnlyLMB() || lmb_pressed;
 
-      if (shouldCount) {
-        setAllStrafes(prev => [strafeObj, ...prev]); // Most recent first
-        playBeep(type);
-      }
-    });
-  };
-  setup();
-  onCleanup(() => unlisten?.());
-});
+        if (shouldCount) {
+          setAllStrafes(prev => [strafeObj, ...prev]); // Most recent first
+          playBeep(type);
+        }
+      });
+    };
+    setup();
+    onCleanup(() => unlisten?.());
+  });
+
   // Statistics
   const allStats = createMemo(() => {
     const allDurations = allStrafes().map(s => s.duration);
@@ -321,58 +322,58 @@ createEffect(() => {
         </div>
 
         {/* Center: Controls */}
-<div className="flex flex-col items-center gap-3 flex-1 max-w-md">
-  {/* Row 1: Volume + Require LMB */}
-  <div className="flex items-center gap-6 justify-center">
-    <div className="flex items-center gap-2 text-xs">
-      <span className="font-medium text-bright/70 whitespace-nowrap">Vol:</span>
-      <input
-        type="range"
-        min="0"
-        max="1"
-        step="0.01"
-        value={volume()}
-        onInput={(e) => setVolume(parseFloat(e.target.value))}
-        className="w-28 accent-primary"
-      />
-    </div>
+        <div className="flex flex-col items-center gap-3 flex-1 max-w-md">
+          {/* Row 1: Volume + Require LMB */}
+          <div className="flex items-center gap-6 justify-center">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-medium text-bright/70 whitespace-nowrap">Vol:</span>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={volume()}
+                onInput={(e) => setVolume(parseFloat(e.target.value))}
+                className="w-28 accent-primary"
+              />
+            </div>
 
-    <label className="flex items-center gap-2 cursor-pointer select-none text-sm group relative">
-      <input
-        type="checkbox"
-        checked={countOnlyLMB()}
-        onChange={(e) => setCountOnlyLMB(e.target.checked)}
-        className="w-5 h-5 accent-primary cursor-pointer"
-      />
-      <span className="font-medium whitespace-nowrap">Require LMB</span>
-      
-      {/* Tooltip */}
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
-        Only count strafes if Left Mouse Button is pressed during the strafe
-      </div>
-    </label>
-  </div>
+            <label className="flex items-center gap-2 cursor-pointer select-none text-sm group relative">
+              <input
+                type="checkbox"
+                checked={countOnlyLMB()}
+                onChange={(e) => setCountOnlyLMB(e.target.checked)}
+                className="w-5 h-5 accent-primary cursor-pointer"
+              />
+              <span className="font-medium whitespace-nowrap">Require LMB</span>
+              
+              {/* Tooltip - now positioned BELOW the checkbox so it never gets clipped by the window top */}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
+                Only count strafes if Left Mouse Button is pressed during the strafe
+              </div>
+            </label>
+          </div>
 
-  {/* Row 2: Sound checkboxes with speaker emoji */}
-  <div className="flex gap-4 text-xs items-center">
-    <span className="font-medium text-bright/70 whitespace-nowrap">Sound:</span>
-    {Object.keys(soundEnabled()).map((t) => (
-      <label key={t} className="flex items-center gap-1 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={soundEnabled()[t]}
-          onChange={(e) => setSoundEnabled((prev) => ({ ...prev, [t]: e.target.checked }))}
-        />
-        <span 
-          className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
-          onClick={() => playBeep(t)}
-        >
-          {t} 🔊
-        </span>
-      </label>
-    ))}
-  </div>
-</div>
+          {/* Row 2: Sound checkboxes with speaker emoji */}
+          <div className="flex gap-4 text-xs items-center">
+            <span className="font-medium text-bright/70 whitespace-nowrap">Sound:</span>
+            {Object.keys(soundEnabled()).map((t) => (
+              <label key={t} className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={soundEnabled()[t]}
+                  onChange={(e) => setSoundEnabled((prev) => ({ ...prev, [t]: e.target.checked }))}
+                />
+                <span 
+                  className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+                  onClick={() => playBeep(t)}
+                >
+                  {t} 🔊
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
 
         {/* Right: Theme Toggle */}
         <button
