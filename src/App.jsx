@@ -167,8 +167,8 @@ function WASD() {
     setupListeners();
   });
 
-  async function simulateEarly() { /* original */ setAPressed(true); setTimeout(() => setDPressed(true), 500); setTimeout(() => setAPressed(false), 850); setTimeout(() => setDPressed(false), 1350); }
-  async function simulateLate() { /* original */ setAPressed(true); setTimeout(() => setAPressed(false), 500); setTimeout(() => setDPressed(true), 850); setTimeout(() => setDPressed(false), 1350); }
+  async function simulateEarly() { setAPressed(true); setTimeout(() => setDPressed(true), 500); setTimeout(() => setAPressed(false), 850); setTimeout(() => setDPressed(false), 1350); }
+  async function simulateLate() { setAPressed(true); setTimeout(() => setAPressed(false), 500); setTimeout(() => setDPressed(true), 850); setTimeout(() => setDPressed(false), 1350); }
   async function simulatePerfect() { const delay = 20; setAPressed(true); setTimeout(() => setAPressed(false), 500); setTimeout(() => setDPressed(true), 500 + delay); setTimeout(() => setDPressed(false), 1000 + delay); }
   async function simulateGood() { const delay = 60; setAPressed(true); setTimeout(() => setAPressed(false), 500); setTimeout(() => setDPressed(true), 500 + delay); setTimeout(() => setDPressed(false), 1000 + delay); }
 
@@ -206,6 +206,7 @@ function App() {
   const [countOnlyLMB, setCountOnlyLMB] = createSignal(false);
   const [isDark, setIsDark] = createSignal(false);
   const [soundEnabled, setSoundEnabled] = createSignal({ Early: true, Good: true, Perfect: true, Late: true });
+  const [volume, setVolume] = createSignal(0.6);   // 0–1 (60% default)
 
   let audioContext;
   onMount(() => {
@@ -215,13 +216,24 @@ function App() {
     else setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
 
+  // ←←← RESTORED: Theme toggle now works again
+  createEffect(() => {
+    if (isDark()) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  });
+
   const playBeep = (type) => {
     if (!soundEnabled()[type] || !audioContext) return;
     const osc = audioContext.createOscillator();
     const gain = audioContext.createGain();
     osc.connect(gain).connect(audioContext.destination);
     osc.frequency.setValueAtTime(type === "Perfect" ? 880 : type === "Good" ? 660 : type === "Early" ? 440 : 220, audioContext.currentTime);
-    gain.gain.value = 0.25;
+    gain.gain.value = volume();
     osc.start();
     gain.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.15);
     osc.stop(audioContext.currentTime + 0.2);
@@ -283,6 +295,7 @@ function App() {
 
   return (
     <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
+      {/* Header */}
       <div className="flex justify-between items-center px-8 select-none">
         <div className="flex justify-center items-center flex-1">
           <h1 className="mr-3 drop-shadow-lg py-4 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">PatrikZero's</h1>
@@ -294,13 +307,29 @@ function App() {
             <span className="font-medium">Count only on LMB</span>
           </label>
 
-          <div className="flex gap-2 text-xs">
+          {/* Sound toggles with clear labels */}
+          <div className="flex gap-3 text-xs items-center">
+            <span className="font-medium text-bright/70">Sound:</span>
             {Object.keys(soundEnabled()).map(t => (
-              <label className="flex items-center gap-1 cursor-pointer">
+              <label key={t} className="flex items-center gap-1 cursor-pointer">
                 <input type="checkbox" checked={soundEnabled()[t]} onChange={e => setSoundEnabled(prev => ({ ...prev, [t]: e.target.checked }))} />
-                <span>{t}</span>
+                <span>{t} 🔊</span>
               </label>
             ))}
+          </div>
+
+          {/* Volume slider */}
+          <div className="flex items-center gap-2 text-xs">
+            <span className="font-medium text-bright/70">Vol:</span>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={volume()}
+              onInput={e => setVolume(parseFloat(e.target.value))}
+              className="w-24 accent-primary"
+            />
           </div>
 
           <button onClick={toggleTheme} class="px-6 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95">
@@ -309,6 +338,7 @@ function App() {
         </div>
       </div>
 
+      {/* Main content */}
       <div className="justify-between flex-grow flex p-4 gap-4">
         <div className="flex-1 rounded-xl border border-white/30 dark:border-white/10 p-4 bg-secondary/50 dark:bg-secondary/30 shadow-xl">
           <div className="flex justify-between mb-4">
@@ -324,7 +354,12 @@ function App() {
         </div>
 
         <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl">
-          <MyChart earlyStrafes={earlyStrafes().map(s => s.duration)} goodStrafes={goodStrafes().map(s => s.duration)} perfectStrafes={perfectStrafes().map(s => s.duration)} lateStrafes={lateStrafes().map(s => s.duration)} />
+          <MyChart
+            earlyStrafes={earlyStrafes().map(s => s.duration)}
+            goodStrafes={goodStrafes().map(s => s.duration)}
+            perfectStrafes={perfectStrafes().map(s => s.duration)}
+            lateStrafes={lateStrafes().map(s => s.duration)}
+          />
         </div>
       </div>
 
@@ -332,6 +367,7 @@ function App() {
         <WASD />
       </div>
 
+      {/* History – newest on the LEFT (original behavior) */}
       <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3 scrollbar-hide">
         <For each={(() => {
           const all = [...earlyStrafes(), ...goodStrafes(), ...perfectStrafes(), ...lateStrafes()];
