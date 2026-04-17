@@ -42,14 +42,9 @@ function getOccurance(duration_array, binSize = 5) {
 }
 
 function StrafePill(props) {
-  const colorMap = {
-    Early: "#f16a5c",
-    Perfect: "#34d27a",
-    Late: "#f7b46f"
-  };
   return (
     <div className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1">
-      <p className="font-bold text-center text-sm" style={{ color: colorMap[props.type] }}>{props.type}</p>
+      <p className="font-bold text-center text-sm" style={{ color: props.color }}>{props.type}</p>
       <p className="text-center text-sm">{draw_time(props.duration)}</p>
     </div>
   );
@@ -151,7 +146,7 @@ const MyChart = (props) => {
   return <Bar data={chartData()} options={chartOptions()} />;
 };
 
-function WASD() {
+function WASD(props) {
   const [aPressed, setAPressed] = createSignal(false);
   const [dPressed, setDPressed] = createSignal(false);
 
@@ -179,9 +174,9 @@ function WASD() {
   return (
     <div className="flex group justify-center items-center w-full h-full">
       <div className="flex flex-col basis-0 flex-grow items-end opacity-0 -translate-x-2 duration-200 group-hover:opacity-100 group-hover:translate-x-0">
-		<button className="wasd-button text-white" style={{ backgroundColor: props.colorMap.Early }} onClick={simulateEarly}>Early</button>
-		<button className="wasd-button text-white" style={{ backgroundColor: props.colorMap.Late }} onClick={simulateLate}>Late</button>
-		<button className="wasd-button text-white" style={{ backgroundColor: props.colorMap.Perfect }} onClick={simulatePerfect}>Perfect</button>
+        <button className="wasd-button text-white" style={{ backgroundColor: props.colorMap.Early }} onClick={simulateEarly}>Early</button>
+        <button className="wasd-button text-white" style={{ backgroundColor: props.colorMap.Late }} onClick={simulateLate}>Late</button>
+        <button className="wasd-button text-white" style={{ backgroundColor: props.colorMap.Perfect }} onClick={simulatePerfect}>Perfect</button>
       </div>
       <div className="flex justify-center basis-0 flex-grow">
         <div className="select-none pointer-events-none text-dark dark:text-bright flex justify-between w-40 text-center font-bold text-xl">
@@ -437,14 +432,18 @@ function App() {
 
         {/* WASD Visualizer */}
         <div className="h-32 flex-shrink-0 flex items-center justify-center">
-          <WASD />
+          <WASD colorMap={colorMap} />
         </div>
 
         {/* History Bar */}
         <div className="h-[100px] flex-shrink-0 flex flex-row p-3 bg-accent/25 dark:bg-accent/20 overflow-x-auto w-full gap-3 scrollbar-hide">
           <For each={recentStrafes()}>
             {(strafe) => (
-              <StrafePill type={strafe.type} duration={strafe.duration} />
+              <StrafePill 
+                type={strafe.type} 
+                duration={strafe.duration}
+                color={colorMap[strafe.type]}
+              />
             )}
           </For>
         </div>
