@@ -89,14 +89,14 @@ function StatsTable(props) {
           <td className="px-3">{props.late.samples}</td>
         </tr>
         <tr className="font-medium border-t border-dark/30 dark:border-bright/30">
-          <th className="px-4">%</th>
+          <th className="px-4">All Strafes %</th>
           <td className="px-3 text-dark/70 dark:text-bright/70">-</td>
           <td className="px-3">{p(props.early.samples)}%</td>
           <td className="px-3">{p(props.perfect.samples)}%</td>
           <td className="px-3">{p(props.late.samples)}%</td>
         </tr>
         <tr className="font-medium border-t border-dark/30 dark:border-bright/30 bg-secondary/30 dark:bg-secondary/40">
-          <th className="px-4">Fired (LMB)</th>
+          <th className="px-4">Pressing LMB %</th>
           <td className="px-3">{props.lmbFired.samples}</td>
           <td className="px-3">{p(props.lmbFired.early)}%</td>
           <td className="px-3">{p(props.lmbFired.perfect)}%</td>
@@ -174,9 +174,9 @@ function WASD(props) {
   return (
     <div className="flex group justify-center items-center w-full h-full">
       <div className="flex flex-col basis-0 flex-grow items-end opacity-0 -translate-x-2 duration-200 group-hover:opacity-100 group-hover:translate-x-0">
-        <button className="wasd-button text-white bg-[#f16a5c]" onClick={simulateEarly}>Early</button>
-		    <button className="wasd-button text-white bg-[#f7b46f]" onClick={simulateLate}>Late</button>
-		    <button className="wasd-button text-white bg-[#34d27a]" onClick={simulatePerfect}>Perfect</button>
+        <button className="wasd-button text-white bg-[#e07e6f]" onClick={simulateEarly}>Early</button>
+		    <button className="wasd-button text-white bg-[#e8c38a]" onClick={simulateLate}>Late</button>
+		    <button className="wasd-button text-white bg-[#5fd38d]" onClick={simulatePerfect}>Perfect</button>
       </div>
       <div className="flex justify-center basis-0 flex-grow">
         <div className="select-none pointer-events-none text-dark dark:text-bright flex justify-between w-40 text-center font-bold text-xl">
