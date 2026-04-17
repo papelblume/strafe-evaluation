@@ -174,9 +174,9 @@ function WASD(props) {
   return (
     <div className="flex group justify-center items-center w-full h-full">
       <div className="flex flex-col basis-0 flex-grow items-end opacity-0 -translate-x-2 duration-200 group-hover:opacity-100 group-hover:translate-x-0">
-        <button className="wasd-button text-white" style={{ backgroundColor: props.colorMap["Early"] }} onClick={simulateEarly}>Early</button>
-        <button className="wasd-button text-white" style={{ backgroundColor: props.colorMap["Late"] }} onClick={simulateLate}>Late</button>
-        <button className="wasd-button text-white" style={{ backgroundColor: props.colorMap["Perfect"] }} onClick={simulatePerfect}>Perfect</button>
+        <button className="wasd-button text-white bg-[#f16a5c]" onClick={simulateEarly}>Early</button>
+		    <button className="wasd-button text-white bg-[#f7b46f]" onClick={simulateLate}>Late</button>
+		    <button className="wasd-button text-white bg-[#34d27a]" onClick={simulatePerfect}>Perfect</button>
       </div>
       <div className="flex justify-center basis-0 flex-grow">
         <div className="select-none pointer-events-none text-dark dark:text-bright flex justify-between w-40 text-center font-bold text-xl">
