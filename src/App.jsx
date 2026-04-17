@@ -219,6 +219,13 @@ function App() {
   const [soundEnabled, setSoundEnabled] = createSignal({ Early: true, Good: true, Perfect: true, Late: true });
   const [volume, setVolume] = createSignal(0.6);
 
+  const colorMap = {
+    Early: "#f16a5c",
+    Good: "#95d26f",
+    Perfect: "#34d27a",
+    Late: "#f7b46f"
+  };
+  
   let audioContext;
   onMount(() => {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -300,6 +307,18 @@ function App() {
     perfect: perfectStrafes().filter(s => s.lmb_pressed).length,
     late: lateStrafes().filter(s => s.lmb_pressed).length
   }));
+
+  const recentStrafes = createMemo(() => {
+    const combined = [
+      ...earlyStrafes(),
+      ...goodStrafes(),
+      ...perfectStrafes(),
+      ...lateStrafes()
+    ];
+
+    // Simply take the last 100 items (most recent first, no sorting)
+    return combined.slice(-100).reverse();
+  });
 
   return (
     <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
@@ -399,18 +418,24 @@ function App() {
         <WASD />
       </div>
 
-      {/* History bar unchanged in size */}
-      <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3 scrollbar-hide">
-        <For each={(() => {
-          const combined = [...earlyStrafes(), ...goodStrafes(), ...perfectStrafes(), ...lateStrafes()];
-          return combined
-            .map((item, index) => ({ ...item, originalIndex: index }))
-            .sort((a, b) => b.originalIndex - a.originalIndex)
-            .slice(0, 100);
-        })()}>
-          {(strafe) => <StrafePill type={strafe.type} duration={strafe.duration} />}
-        </For>
+{/* History Bar - Most recent 100, no sorting */}
+<div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3 scrollbar-hide">
+  <For each={recentStrafes()}>
+    {(strafe) => (
+      <div 
+        className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1"
+      >
+        <p 
+          className="font-bold text-center text-sm" 
+          style={{ color: colorMap[strafe.type] }}
+        >
+          {strafe.type}
+        </p>
+        <p className="text-center text-sm">{draw_time(strafe.duration)}</p>
       </div>
+    )}
+  </For>
+</div>
     </div>
   );
 }
