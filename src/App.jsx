@@ -242,7 +242,7 @@ function App() {
     const osc = audioContext.createOscillator();
     const gain = audioContext.createGain();
     osc.connect(gain).connect(audioContext.destination);
-    osc.frequency.setValueAtTime(type === "Perfect" ? 880 : type === "Good" ? 660 : type === "Early" ? 440 : 220, audioContext.currentTime);
+    osc.frequency.setValueAtTime(type === "Perfect" ? 880 : type === "Good" ? 660 : type === "Late" ? 440 : 220, audioContext.currentTime);
     gain.gain.value = volume();
     osc.start();
     gain.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.15);
