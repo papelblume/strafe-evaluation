@@ -384,16 +384,16 @@ function App() {
         </button>
       </div>
 
-      {/* Main Content */}
-<div className="flex flex-grow flex-col p-3 gap-4">
+      {/* Main Content - Shorter Statistics + Chart */}
+<div className="flex flex-col flex-grow p-3 gap-4 overflow-hidden">   {/* ← Changed */}
 
-  {/* Statistics + Chart - Now shorter */}
-  <div className="flex gap-4 flex-1 min-h-0">   {/* ← Important: flex-1 + min-h-0 */}
+  {/* Statistics + Chart Row - Now properly constrained */}
+  <div className="flex gap-4 flex-1 min-h-0">   {/* ← Important */}
 
     {/* Statistics Panel */}
-    <div className="flex flex-col rounded-xl border border-white/30 dark:border-white/10 p-4 
-                    w-[50%] bg-secondary/50 dark:bg-secondary/30 shadow-xl 
-                    max-h-[calc(100vh-280px)]">   {/* ← This is the key line */}
+    <div className="flex flex-col w-[50%] rounded-xl border border-white/30 dark:border-white/10 p-4 
+                    bg-secondary/50 dark:bg-secondary/30 shadow-xl 
+                    max-h-[420px]">   {/* ← This is the main line that controls height */}
       <div className="flex justify-between mb-4">
         <h2 className="select-none text-2xl font-bold">Statistics</h2>
         <button onClick={resetStrafes} className="text-bright select-none shadow-md px-5 py-1 rounded-md bg-primary hover:scale-110 active:scale-95 transition-all">Reset</button>
@@ -412,7 +412,7 @@ function App() {
 
     {/* Chart Panel */}
     <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl 
-                    max-h-[calc(100vh-280px)]">   {/* ← This is the key line */}
+                    max-h-[420px]">   {/* ← Same height control here */}
       <div className="flex-1 min-h-0 overflow-hidden">
         <MyChart
           earlyStrafes={allStrafes().filter(s => s.type === "Early").map(s => s.duration)}
@@ -424,13 +424,13 @@ function App() {
     </div>
   </div>
 
-  {/* WASD Visualizer - unchanged */}
-  <div className="h-32 flex items-center justify-center flex-shrink-0">
+  {/* WASD Visualizer */}
+  <div className="h-32 flex-shrink-0 flex items-center justify-center">
     <WASD />
   </div>
 
-  {/* History Bar - Now 100px tall */}
-  <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-[100px] overflow-x-auto w-full gap-3 scrollbar-hide flex-shrink-0">
+  {/* History Bar - 100px tall */}
+  <div className="h-[100px] flex-shrink-0 flex flex-row p-3 bg-accent/25 dark:bg-accent/20 overflow-x-auto w-full gap-3 scrollbar-hide">
     <For each={recentStrafes()}>
       {(strafe) => (
         <div 
