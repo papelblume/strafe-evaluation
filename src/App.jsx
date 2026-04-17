@@ -187,18 +187,12 @@ function WASD() {
 
   return (
     <div className="flex group justify-center items-center w-full h-full">
-      {/* Simulation Buttons - Now 2x2 Grid */}
       <div className="flex flex-col basis-0 flex-grow items-end opacity-0 -translate-x-2 duration-200 group-hover:opacity-100 group-hover:translate-x-0">
-        <div className="grid grid-cols-2 gap-2">
-          <button className="wasd-button text-white bg-[#b5ac8c]" onClick={simulatePerfect}>Perfect</button>
-          <button className="wasd-button text-white bg-secondary" onClick={simulateEarly}>Early</button>
-
-          <button className="wasd-button text-white bg-[#b5ac8c]" onClick={simulateGood}>Good</button>
-          <button className="wasd-button text-white bg-accent" onClick={simulateLate}>Late</button>
-        </div>
+        <button className="wasd-button text-white bg-secondary" onClick={simulateEarly}>Early</button>
+        <button className="wasd-button text-white bg-accent" onClick={simulateLate}>Late</button>
+        <button className="wasd-button text-white bg-[#b5ac8c]" onClick={simulatePerfect}>Perfect</button>
+        <button className="wasd-button text-white bg-[#b5ac8c]" onClick={simulateGood}>Good</button>
       </div>
-
-      {/* WASD Keys */}
       <div className="flex justify-center basis-0 flex-grow">
         <div className="select-none pointer-events-none text-dark dark:text-bright flex justify-between w-40 text-center font-bold text-xl">
           <div className={`flex border border-dark/20 dark:border-bright/20 border-r border-b shadow-lg border-b-dark/50 dark:border-b-bright/50 w-16 h-16 rounded-md justify-center items-center duration-75 transition-all ${aPressed() ? "bg-accent/70 scale-100 translate-y-[4px]" : "bg-secondary/10 dark:bg-secondary/20"}`}>
@@ -209,7 +203,6 @@ function WASD() {
           </div>
         </div>
       </div>
-
       <div className="basis-0 flex-grow min-w-[200px]"></div>
     </div>
   );
@@ -325,7 +318,7 @@ function App() {
   });
 
     return (
-    <div className="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
+    <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
       {/* Header */}
       <div className="flex justify-between items-center px-6 py-3 select-none">
         {/* Left: Title */}
@@ -392,69 +385,69 @@ function App() {
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-grow flex-col p-3 gap-4 overflow-hidden">
-        {/* Statistics + Chart Row */}
-        <div className="flex gap-4 flex-shrink-0">   {/* ← Important: flex-shrink-0 */}
+<div className="flex flex-grow flex-col p-3 gap-4">
 
-          {/* Statistics Panel - Fixed 340px height */}
-          <div className="flex flex-col rounded-xl border border-white/30 dark:border-white/10 p-4 
-                          w-[50%] bg-secondary/50 dark:bg-secondary/30 shadow-xl 
-                          h-[340px]">   {/* ← Changed to fixed height */}
-            <div className="flex justify-between mb-4">
-              <h2 className="select-none text-2xl font-bold">Statistics</h2>
-              <button onClick={resetStrafes} className="text-bright select-none shadow-md px-5 py-1 rounded-md bg-primary hover:scale-110 active:scale-95 transition-all">Reset</button>
-            </div>
-            <div className="flex-1 overflow-auto">
-              <StatsTable
-                alls={allStats().alls}
-                early={allStats().early}
-                good={allStats().good}
-                perfect={allStats().perfect}
-                late={allStats().late}
-                lmbFired={lmbFired()}
-              />
-            </div>
-          </div>
+  {/* Statistics + Chart - Now shorter */}
+  <div className="flex gap-4 flex-1 min-h-0">   {/* ← Important: flex-1 + min-h-0 */}
 
-          {/* Chart Panel - Fixed 340px height */}
-          <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl 
-                          h-[340px]">   {/* ← Changed to fixed height */}
-            <h2 className="select-none text-2xl font-bold mb-4">Strafe Timing Chart</h2>
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <MyChart
-                earlyStrafes={allStrafes().filter(s => s.type === "Early").map(s => s.duration)}
-                goodStrafes={allStrafes().filter(s => s.type === "Good").map(s => s.duration)}
-                perfectStrafes={allStrafes().filter(s => s.type === "Perfect").map(s => s.duration)}
-                lateStrafes={allStrafes().filter(s => s.type === "Late").map(s => s.duration)}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* WASD Visualizer - Optional: you can keep or adjust */}
-        <div className="h-32 flex items-center justify-center flex-shrink-0">
-          <WASD />
-        </div>
-
-        {/* History Bar - 90px tall */}
-        <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-[90px] overflow-x-auto w-full gap-3 scrollbar-hide flex-shrink-0">   {/* ← Changed to h-[90px] */}
-          <For each={recentStrafes()}>
-            {(strafe) => (
-              <div 
-                className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1"
-              >
-                <p 
-                  className="font-bold text-center text-sm" 
-                  style={{ color: colorMap[strafe.type] }}
-                >
-                  {strafe.type}
-                </p>
-                <p className="text-center text-sm">{draw_time(strafe.duration)}</p>
-              </div>
-            )}
-          </For>
-        </div>
+    {/* Statistics Panel */}
+    <div className="flex flex-col rounded-xl border border-white/30 dark:border-white/10 p-4 
+                    w-[50%] bg-secondary/50 dark:bg-secondary/30 shadow-xl 
+                    max-h-[calc(100vh-280px)]">   {/* ← This is the key line */}
+      <div className="flex justify-between mb-4">
+        <h2 className="select-none text-2xl font-bold">Statistics</h2>
+        <button onClick={resetStrafes} className="text-bright select-none shadow-md px-5 py-1 rounded-md bg-primary hover:scale-110 active:scale-95 transition-all">Reset</button>
       </div>
+      <div className="flex-1 overflow-auto">
+        <StatsTable
+          alls={allStats().alls}
+          early={allStats().early}
+          good={allStats().good}
+          perfect={allStats().perfect}
+          late={allStats().late}
+          lmbFired={lmbFired()}
+        />
+      </div>
+    </div>
+
+    {/* Chart Panel */}
+    <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl 
+                    max-h-[calc(100vh-280px)]">   {/* ← This is the key line */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <MyChart
+          earlyStrafes={allStrafes().filter(s => s.type === "Early").map(s => s.duration)}
+          goodStrafes={allStrafes().filter(s => s.type === "Good").map(s => s.duration)}
+          perfectStrafes={allStrafes().filter(s => s.type === "Perfect").map(s => s.duration)}
+          lateStrafes={allStrafes().filter(s => s.type === "Late").map(s => s.duration)}
+        />
+      </div>
+    </div>
+  </div>
+
+  {/* WASD Visualizer - unchanged */}
+  <div className="h-32 flex items-center justify-center flex-shrink-0">
+    <WASD />
+  </div>
+
+  {/* History Bar - Now 100px tall */}
+  <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-[100px] overflow-x-auto w-full gap-3 scrollbar-hide flex-shrink-0">
+    <For each={recentStrafes()}>
+      {(strafe) => (
+        <div 
+          className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1"
+        >
+          <p 
+            className="font-bold text-center text-sm" 
+            style={{ color: colorMap[strafe.type] }}
+          >
+            {strafe.type}
+          </p>
+          <p className="text-center text-sm">{draw_time(strafe.duration)}</p>
+        </div>
+      )}
+    </For>
+  </div>
+</div>
     </div>
   );
 }
