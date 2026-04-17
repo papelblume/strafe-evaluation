@@ -5,8 +5,9 @@ import { Bar } from 'solid-chartjs';
 import { listen } from '@tauri-apps/api/event';
 
 function draw_time(time) {
-  if (time < 0) return "-" + (Math.abs(time) / 1000).toFixed(0) + " ms";
-  return (time / 1000).toFixed(0) + " ms";
+  // FIXED: now correctly handles milliseconds from Rust
+  if (time < 0) return "-" + Math.abs(time).toFixed(0) + " ms";
+  return time.toFixed(0) + " ms";
 }
 
 function getMeanAndVar(arr) {
@@ -100,6 +101,15 @@ function StatsTable(props) {
           <td>{p(props.perfect.samples)}%</td>
           <td>{p(props.late.samples)}%</td>
         </tr>
+        {/* NEW ROW: Fired during strafe (LMB) */}
+        <tr className="font-medium border-t border-dark/30 dark:border-bright/30 bg-secondary/20 dark:bg-secondary/30">
+          <th>Fired (LMB)</th>
+          <td>{props.lmbFired.samples}</td>
+          <td>{p(props.lmbFired.early)}%</td>
+          <td>{p(props.lmbFired.good)}%</td>
+          <td>{p(props.lmbFired.perfect)}%</td>
+          <td>{p(props.lmbFired.late)}%</td>
+        </tr>
       </tbody>
     </table>
   );
@@ -147,6 +157,7 @@ const MyChart = (props) => {
 };
 
 function WASD() {
+  // ... (unchanged - same as your last version)
   const [aPressed, setAPressed] = createSignal(false);
   const [dPressed, setDPressed] = createSignal(false);
 
@@ -180,7 +191,6 @@ function WASD() {
         <button className="wasd-button text-white bg-[#b5ac8c]" onClick={simulatePerfect}>Perfect</button>
         <button className="wasd-button text-white bg-[#b5ac8c]" onClick={simulateGood}>Good</button>
       </div>
-
       <div className="flex justify-center basis-0 flex-grow">
         <div className="select-none pointer-events-none text-dark dark:text-bright flex justify-between w-40 text-center font-bold text-xl">
           <div className={`flex border border-dark/20 dark:border-bright/20 border-r border-b shadow-lg border-b-dark/50 dark:border-b-bright/50 w-16 h-16 rounded-md justify-center items-center duration-75 transition-all ${aPressed() ? "bg-accent/70 scale-100 translate-y-[4px]" : "bg-secondary/10 dark:bg-secondary/20"}`}>
@@ -191,7 +201,6 @@ function WASD() {
           </div>
         </div>
       </div>
-
       <div className="basis-0 flex-grow min-w-[200px]"></div>
     </div>
   );
@@ -206,7 +215,7 @@ function App() {
   const [countOnlyLMB, setCountOnlyLMB] = createSignal(false);
   const [isDark, setIsDark] = createSignal(false);
   const [soundEnabled, setSoundEnabled] = createSignal({ Early: true, Good: true, Perfect: true, Late: true });
-  const [volume, setVolume] = createSignal(0.6);   // 0–1 (60% default)
+  const [volume, setVolume] = createSignal(0.6);
 
   let audioContext;
   onMount(() => {
@@ -216,7 +225,6 @@ function App() {
     else setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
 
-  // ←←← RESTORED: Theme toggle now works again
   createEffect(() => {
     if (isDark()) {
       document.documentElement.classList.add('dark');
@@ -280,22 +288,19 @@ function App() {
     late: getStats(lateStrafes().map(s => s.duration))
   }));
 
-  const firedEarly = createMemo(() => earlyStrafes().filter(s => s.lmb_pressed).map(s => s.duration));
-  const firedGood = createMemo(() => goodStrafes().filter(s => s.lmb_pressed).map(s => s.duration));
-  const firedPerfect = createMemo(() => perfectStrafes().filter(s => s.lmb_pressed).map(s => s.duration));
-  const firedLate = createMemo(() => lateStrafes().filter(s => s.lmb_pressed).map(s => s.duration));
-
-  const firedStats = createMemo(() => ({
-    alls: getStats([...firedEarly(), ...firedGood(), ...firedPerfect(), ...firedLate()]),
-    early: getStats(firedEarly()),
-    good: getStats(firedGood()),
-    perfect: getStats(firedPerfect()),
-    late: getStats(firedLate())
+  const lmbFired = createMemo(() => ({
+    samples: earlyStrafes().filter(s => s.lmb_pressed).length +
+             goodStrafes().filter(s => s.lmb_pressed).length +
+             perfectStrafes().filter(s => s.lmb_pressed).length +
+             lateStrafes().filter(s => s.lmb_pressed).length,
+    early: earlyStrafes().filter(s => s.lmb_pressed).length,
+    good: goodStrafes().filter(s => s.lmb_pressed).length,
+    perfect: perfectStrafes().filter(s => s.lmb_pressed).length,
+    late: lateStrafes().filter(s => s.lmb_pressed).length
   }));
 
   return (
     <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
-      {/* Header */}
       <div className="flex justify-between items-center px-8 select-none">
         <div className="flex justify-center items-center flex-1">
           <h1 className="mr-3 drop-shadow-lg py-4 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">PatrikZero's</h1>
@@ -307,7 +312,6 @@ function App() {
             <span className="font-medium">Count only on LMB</span>
           </label>
 
-          {/* Sound toggles with clear labels */}
           <div className="flex gap-3 text-xs items-center">
             <span className="font-medium text-bright/70">Sound:</span>
             {Object.keys(soundEnabled()).map(t => (
@@ -318,18 +322,9 @@ function App() {
             ))}
           </div>
 
-          {/* Volume slider */}
           <div className="flex items-center gap-2 text-xs">
             <span className="font-medium text-bright/70">Vol:</span>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={volume()}
-              onInput={e => setVolume(parseFloat(e.target.value))}
-              className="w-24 accent-primary"
-            />
+            <input type="range" min="0" max="1" step="0.01" value={volume()} onInput={e => setVolume(parseFloat(e.target.value))} className="w-24 accent-primary" />
           </div>
 
           <button onClick={toggleTheme} class="px-6 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95">
@@ -338,19 +333,21 @@ function App() {
         </div>
       </div>
 
-      {/* Main content */}
       <div className="justify-between flex-grow flex p-4 gap-4">
-        <div className="flex-1 rounded-xl border border-white/30 dark:border-white/10 p-4 bg-secondary/50 dark:bg-secondary/30 shadow-xl">
+        {/* Reverted to original Statistics panel */}
+        <div className="flex flex-col rounded-xl border border-white/30 dark:border-white/10 p-4 w-[50%] bg-secondary/50 dark:bg-secondary/30 shadow-xl">
           <div className="flex justify-between mb-4">
-            <h2 className="text-2xl font-bold">All Strafes</h2>
+            <h2 className="select-none text-2xl font-bold">Statistics</h2>
             <button onClick={resetStrafes} className="text-bright select-none shadow-md px-5 py-1 rounded-md bg-primary hover:scale-110 active:scale-95 transition-all">Reset</button>
           </div>
-          <StatsTable alls={allStats().alls} early={allStats().early} good={allStats().good} perfect={allStats().perfect} late={allStats().late} />
-        </div>
-
-        <div className="flex-1 rounded-xl border border-white/30 dark:border-white/10 p-4 bg-secondary/50 dark:bg-secondary/30 shadow-xl">
-          <h2 className="text-2xl font-bold mb-4">Fired during strafe (LMB)</h2>
-          <StatsTable alls={firedStats().alls} early={firedStats().early} good={firedStats().good} perfect={firedStats().perfect} late={firedStats().late} />
+          <StatsTable
+            alls={allStats().alls}
+            early={allStats().early}
+            good={allStats().good}
+            perfect={allStats().perfect}
+            late={allStats().late}
+            lmbFired={lmbFired()}
+          />
         </div>
 
         <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl">
@@ -367,7 +364,6 @@ function App() {
         <WASD />
       </div>
 
-      {/* History – newest on the LEFT (original behavior) */}
       <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3 scrollbar-hide">
         <For each={(() => {
           const all = [...earlyStrafes(), ...goodStrafes(), ...perfectStrafes(), ...lateStrafes()];
