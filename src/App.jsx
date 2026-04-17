@@ -1,256 +1,157 @@
-import { createSignal, onMount, createEffect, onCleanup, For } from "solid-js";
+import { createSignal, onMount, createEffect, onCleanup, For, createMemo, batch } from "solid-js";
 import "./App.css";
-import { Chart, registerables } from 'chart.js'
-import { Bar } from 'solid-chartjs'
-import { listen } from '@tauri-apps/api/event'
+import { Chart, registerables } from 'chart.js';
+import { Bar } from 'solid-chartjs';
+import { listen } from '@tauri-apps/api/event';
 
 function draw_time(time) {
-  if (time < 0) {
-    return "-" + (Math.abs(time) / 1000).toFixed(0) + " ms";
-  }
+  if (time < 0) return "-" + (Math.abs(time) / 1000).toFixed(0) + " ms";
   return (time / 1000).toFixed(0) + " ms";
 }
 
 function getMeanAndVar(arr) {
   if (arr.length === 0) return { average: 0, std_deviation: 0 };
-
-  var sum = arr.reduce((pre, cur) => pre + cur);
-  let num = arr.length;
-  var average = sum / num;
-
+  const sum = arr.reduce((pre, cur) => pre + cur);
+  const num = arr.length;
+  const average = sum / num;
   let variance = 0;
-  arr.forEach(num => {
-    variance += ((num - average) * (num - average));
-  });
+  arr.forEach(n => { variance += (n - average) ** 2; });
   variance /= num;
-  variance = Math.sqrt(variance);
-
-  return {
-    average: average,
-    std_deviation: variance
-  }
+  return { average, std_deviation: Math.sqrt(variance) };
 }
 
 function getStats(duration_array) {
-  if (duration_array.length < 1) {
-    return { median: 0, min: 0, max: 0, average: 0, std_deviation: 0, samples: 0 };
-  }
-
+  if (duration_array.length < 1) return { median: 0, min: 0, max: 0, average: 0, std_deviation: 0, samples: 0 };
   const absValues = duration_array.map(Math.abs);
   const sorted = [...absValues].sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
-
-  let median;
-  if (sorted.length % 2 === 0) {
-    median = (sorted[middle - 1] + sorted[middle]) / 2;
-  } else {
-    median = sorted[middle];
-  }
-
-  let o = getMeanAndVar(absValues);
-
-  return {
-    median: median,
-    min: sorted[0],
-    max: sorted[sorted.length - 1],
-    average: o.average,
-    std_deviation: o.std_deviation,
-    samples: duration_array.length
-  };
+  const median = sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
+  const o = getMeanAndVar(absValues);
+  return { median, min: sorted[0], max: sorted[sorted.length - 1], average: o.average, std_deviation: o.std_deviation, samples: duration_array.length };
 }
 
 function getOccurance(duration_array, binSize = 5) {
-  if (!duration_array || duration_array.length === 0) {
-    return new Array(81).fill(0);
-  }
-
+  if (!duration_array || duration_array.length === 0) return new Array(81).fill(0);
   const out = new Array(81).fill(0);
-
   duration_array.forEach(x => {
     const bin = Math.round(x / binSize);
     const index = 40 + bin;
-
-    if (index >= 0 && index < 81) {
-      out[index] += 1;
-    }
+    if (index >= 0 && index < 81) out[index] += 1;
   });
-
   return out;
 }
 
+// Helper components
+function StrafePill(props) {
+  const colorMap = { Early: "#e06c75", Good: "#b5ac8c", Perfect: "#88a56f", Late: "#a5c5ae" };
+  return (
+    <div className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1">
+      <p className="font-bold text-center text-sm" style={{ color: colorMap[props.type] || "#e8e8e8" }}>{props.type}</p>
+      <p className="text-center text-sm">{draw_time(props.duration)}</p>
+    </div>
+  );
+}
+
+function StatRow(props) {
+  return (
+    <tr>
+      <th>{props.label}</th>
+      <td>{draw_time(props.alls)}</td>
+      <td>{draw_time(props.early)}</td>
+      <td>{draw_time(props.good)}</td>
+      <td>{draw_time(props.perfect)}</td>
+      <td>{draw_time(props.late)}</td>
+    </tr>
+  );
+}
+
+function StatsTable(props) {
+  const total = () => props.alls.samples;
+  const p = (n) => total() > 0 ? Math.round((n / total()) * 100) : 0;
+
+  return (
+    <table style="width:100%">
+      <tbody className="text-center">
+        <tr>
+          <th></th>
+          <th className="w-16">All</th>
+          <th className="w-16">Early</th>
+          <th className="w-16">Good</th>
+          <th className="w-16">Perfect</th>
+          <th className="w-16">Late</th>
+        </tr>
+        <StatRow label="Median" alls={props.alls.median} early={props.early.median} good={props.good.median} perfect={props.perfect.median} late={props.late.median} />
+        <StatRow label="Average" alls={props.alls.average} early={props.early.average} good={props.good.average} perfect={props.perfect.average} late={props.late.average} />
+        <StatRow label="Min" alls={props.alls.min} early={props.early.min} good={props.good.min} perfect={props.perfect.min} late={props.late.min} />
+        <StatRow label="Max" alls={props.alls.max} early={props.early.max} good={props.good.max} perfect={props.perfect.max} late={props.late.max} />
+        <StatRow label="Std. Deviation" alls={props.alls.std_deviation} early={props.early.std_deviation} good={props.good.std_deviation} perfect={props.perfect.std_deviation} late={props.late.std_deviation} />
+        <tr>
+          <th>Samples</th>
+          <td>{props.alls.samples}</td>
+          <td>{props.early.samples}</td>
+          <td>{props.good.samples}</td>
+          <td>{props.perfect.samples}</td>
+          <td>{props.late.samples}</td>
+        </tr>
+        <tr className="font-medium border-t border-dark/30 dark:border-bright/30">
+          <th>%</th>
+          <td className="text-bright/70">-</td>
+          <td>{p(props.early.samples)}%</td>
+          <td>{p(props.good.samples)}%</td>
+          <td>{p(props.perfect.samples)}%</td>
+          <td>{p(props.late.samples)}%</td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
 const MyChart = (props) => {
-  const binSize = 5; // Round to nearest 5ms bin
-  const labels = Array.from({ length: 81 }, (_, i) => (i - 40) * binSize);
-  
+  const binSize = 5;
+  const labels = createMemo(() => Array.from({ length: 81 }, (_, i) => (i - 40) * binSize));
+
   const [chartData, setChartData] = createSignal({
-    labels: labels,
+    labels: labels(),
     datasets: [
-      { label: 'Early', data: getOccurance([], binSize), borderRadius: 5, backgroundColor: "#8cb5a8" },
-      { label: 'Late', data: getOccurance([], binSize), borderRadius: 5, backgroundColor: "#a5c5ae" },
-      { label: 'Perfect', data: getOccurance([], binSize), borderRadius: 5, backgroundColor: "#b5ac8c" },
+      { label: 'Early', data: [], borderRadius: 5, backgroundColor: "#e06c75" },
+      { label: 'Good', data: [], borderRadius: 5, backgroundColor: "#b5ac8c" },
+      { label: 'Perfect', data: [], borderRadius: 5, backgroundColor: "#88a56f" },
+      { label: 'Late', data: [], borderRadius: 5, backgroundColor: "#a5c5ae" },
     ],
   });
 
-  onMount(() => {
-    Chart.register(...registerables);
-  });
+  onMount(() => Chart.register(...registerables));
 
   createEffect(() => {
-    const { earlyStrafes, lateStrafes, perfectStrafes } = props;
-
     setChartData({
-      labels: labels,
+      labels: labels(),
       datasets: [
-        { label: 'Early', data: getOccurance(earlyStrafes, binSize), borderRadius: 5, backgroundColor: "#8cb5a8" },
-        { label: 'Late', data: getOccurance(lateStrafes, binSize), borderRadius: 5, backgroundColor: "#a5c5ae" },
-        { label: 'Perfect', data: getOccurance(perfectStrafes, binSize), borderRadius: 5, backgroundColor: "#b5ac8c" },
+        { label: 'Early', data: getOccurance(props.earlyStrafes, binSize), borderRadius: 5, backgroundColor: "#e06c75" },
+        { label: 'Good', data: getOccurance(props.goodStrafes, binSize), borderRadius: 5, backgroundColor: "#b5ac8c" },
+        { label: 'Perfect', data: getOccurance(props.perfectStrafes, binSize), borderRadius: 5, backgroundColor: "#88a56f" },
+        { label: 'Late', data: getOccurance(props.lateStrafes, binSize), borderRadius: 5, backgroundColor: "#a5c5ae" },
       ],
     });
   });
 
-  const chartOptions = {
+  const chartOptions = createMemo(() => ({
     responsive: true,
     maintainAspectRatio: true,
     scales: {
-      x: { 
-        stacked: true,
-        ticks: { color: 'var(--chart-text)', font: { size: 12 } },
-        grid: { color: 'var(--chart-grid)' }
-      },
-      y: { 
-        stacked: true,
-        ticks: { color: 'var(--chart-text)', font: { size: 12 } },
-        grid: { color: 'var(--chart-grid)' }
-      }
+      x: { stacked: true, ticks: { color: 'var(--chart-text)', font: { size: 12 } }, grid: { color: 'var(--chart-grid)' } },
+      y: { stacked: true, ticks: { color: 'var(--chart-text)', font: { size: 12 } }, grid: { color: 'var(--chart-grid)' } }
     },
-    plugins: {
-      legend: {
-        labels: { color: 'var(--chart-text)' }
-      }
-    }
-  };
+    plugins: { legend: { labels: { color: 'var(--chart-text)' } } }
+  }));
 
-  return (
-    <div>
-      <Bar data={chartData()} options={chartOptions} width={4} height={3} />
-    </div>
-  );
+  return <Bar data={chartData()} options={chartOptions()} width={4} height={3} />;
 };
-
-function Stats(props) {
-  const [stats, setStats] = createSignal({
-    alls: getStats([]),
-    early: getStats([]),
-    late: getStats([]),
-    perfect: getStats([])
-  });
-
-  const [perfectCount, setPerfectCount] = createSignal(0);
-
-  createEffect(() => {
-    const { earlyStrafes, lateStrafes, perfectStrafes } = props;
-
-    setPerfectCount(perfectStrafes.length);
-
-    setStats(() => ({
-      alls: getStats([...earlyStrafes, ...lateStrafes, ...perfectStrafes]),
-      early: getStats(earlyStrafes),
-      late: getStats(lateStrafes),
-      perfect: getStats(perfectStrafes)
-    }));
-  });
-
-  // Calculate percentages
-  const totalSamples = () => stats().alls.samples;
-  
-  const earlyPercent = () => totalSamples() > 0 
-    ? Math.round((stats().early.samples / totalSamples()) * 100) 
-    : 0;
-  
-  const latePercent = () => totalSamples() > 0 
-    ? Math.round((stats().late.samples / totalSamples()) * 100) 
-    : 0;
-  
-  const perfectPercent = () => totalSamples() > 0 
-    ? Math.round((stats().perfect.samples / totalSamples()) * 100) 
-    : 0;
-
-  return (
-    <div className="flex flex-col justify-center items-center flex-grow">
-      <table style="width:100%">
-        <tbody className="text-center">
-          <tr>
-            <th></th>
-            <th className="w-16">All</th>
-            <th className="w-16">Early</th>
-            <th className="w-16">Late</th>
-            <th className="w-16">Perfect</th>
-          </tr>
-          <tr>
-            <th>Median</th>
-            <td>{draw_time(stats().alls.median)}</td>
-            <td>{draw_time(stats().early.median)}</td>
-            <td>{draw_time(stats().late.median)}</td>
-            <td>{draw_time(stats().perfect.median)}</td>
-          </tr>
-          <tr>
-            <th>Average</th>
-            <td>{draw_time(stats().alls.average)}</td>
-            <td>{draw_time(stats().early.average)}</td>
-            <td>{draw_time(stats().late.average)}</td>
-            <td>{draw_time(stats().perfect.average)}</td>
-          </tr>
-          <tr>
-            <th>Min</th>
-            <td>{draw_time(stats().alls.min)}</td>
-            <td>{draw_time(stats().early.min)}</td>
-            <td>{draw_time(stats().late.min)}</td>
-            <td>{draw_time(stats().perfect.min)}</td>
-          </tr>
-          <tr>
-            <th>Max</th>
-            <td>{draw_time(stats().alls.max)}</td>
-            <td>{draw_time(stats().early.max)}</td>
-            <td>{draw_time(stats().late.max)}</td>
-            <td>{draw_time(stats().perfect.max)}</td>
-          </tr>
-          <tr>
-            <th>Std. Deviation</th>
-            <td>{draw_time(stats().alls.std_deviation)}</td>
-            <td>{draw_time(stats().early.std_deviation)}</td>
-            <td>{draw_time(stats().late.std_deviation)}</td>
-            <td>{draw_time(stats().perfect.std_deviation)}</td>
-          </tr>
-          <tr>
-            <th>Samples</th>
-            <td>{stats().alls.samples}</td>
-            <td>{stats().early.samples}</td>
-            <td>{stats().late.samples}</td>
-            <td>{stats().perfect.samples}</td>
-          </tr>
-          
-          {/* NEW: Percentage row */}
-          <tr className="font-medium border-t border-dark/30 dark:border-bright/30">
-            <th>%</th>
-            <td className="text-bright/70 dark:text-bright/70">-</td>
-            <td>{earlyPercent()}%</td>
-            <td>{latePercent()}%</td>
-            <td>{perfectPercent()}%</td>
-          </tr>
-        </tbody>
-      </table>
-      <div className="italic font-bold text-xl pt-4">
-        <h1>Perfect {perfectCount()}x</h1>
-      </div>
-    </div>
-  );
-}
 
 function WASD() {
   const [aPressed, setAPressed] = createSignal(false);
   const [dPressed, setDPressed] = createSignal(false);
 
-  createEffect(() => {
+createEffect(() => {
     let unlistenA, unlistenD, unlistenReleaseA, unlistenReleaseD;
 
     const setupListeners = async () => {
@@ -285,7 +186,15 @@ function WASD() {
   }
 
   async function simulatePerfect() {
-    const delay = Math.floor(Math.random() * 81);
+    const delay = 20;
+    setAPressed(true);
+    setTimeout(() => setAPressed(false), 500);
+    setTimeout(() => setDPressed(true), 500 + delay);
+    setTimeout(() => setDPressed(false), 1000 + delay);
+  }
+
+  async function simulateGood() {
+    const delay = 80; // 41-80 ms range
     setAPressed(true);
     setTimeout(() => setAPressed(false), 500);
     setTimeout(() => setDPressed(true), 500 + delay);
@@ -317,159 +226,157 @@ function WASD() {
 }
 
 function App() {
-  const [totalStrafes, setTotalStrafes] = createSignal([]);
-  const [earlyStrafes, setEarlyStrafes] = createSignal([]);
-  const [lateStrafes, setLateStrafes] = createSignal([]);
+  const [earlyStrafes, setEarlyStrafes] = createSignal([]);   // array of {duration, lmb_pressed}
+  const [goodStrafes, setGoodStrafes] = createSignal([]);
   const [perfectStrafes, setPerfectStrafes] = createSignal([]);
+  const [lateStrafes, setLateStrafes] = createSignal([]);
 
   const [countOnlyLMB, setCountOnlyLMB] = createSignal(false);
   const [isDark, setIsDark] = createSignal(false);
+  const [soundEnabled, setSoundEnabled] = createSignal({ Early: true, Good: true, Perfect: true, Late: true });
 
+  let audioContext;
   onMount(() => {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const saved = localStorage.getItem('theme');
     if (saved) setIsDark(saved === 'dark');
     else setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
 
-  createEffect(() => {
-    if (isDark()) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  });
+  const playBeep = (type) => {
+    if (!soundEnabled()[type] || !audioContext) return;
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.connect(gain).connect(audioContext.destination);
+    osc.frequency.setValueAtTime(type === "Perfect" ? 880 : type === "Good" ? 660 : type === "Early" ? 440 : 220, audioContext.currentTime);
+    gain.gain.value = 0.25;
+    osc.start();
+    gain.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.15);
+    osc.stop(audioContext.currentTime + 0.2);
+  };
 
   const toggleTheme = () => setIsDark(prev => !prev);
 
   function resetStrafes() {
-    setEarlyStrafes([]);
-    setLateStrafes([]);
-    setPerfectStrafes([]);
-    setTotalStrafes([]);
+    batch(() => {
+      setEarlyStrafes([]); setGoodStrafes([]); setPerfectStrafes([]); setLateStrafes([]);
+    });
   }
 
-  // Strafe listener - respects the "Count only on LMB" toggle
+  // Strafe listener
   createEffect(() => {
-    let unlistenStrafe;
-
-    const setupListeners = async () => {
-      unlistenStrafe = await listen('strafe', (event) => {
+    let unlisten;
+    const setup = async () => {
+      unlisten = await listen('strafe', (event) => {
         const { strafe_type: type, duration, lmb_pressed } = event.payload;
+        let finalDuration = type === "Early" ? -duration : duration;
+        const strafeObj = { type, duration: finalDuration, lmb_pressed };
 
-        let finalDuration = duration;
-        if (type === "Early") {
-          finalDuration = -duration;
-        }
-
-        const strafe = { type, duration: finalDuration };
-
-        // Only count Early/Late when LMB is pressed (or when the toggle is disabled)
-        // Perfect strafes are always counted
-        const shouldCount = !countOnlyLMB() || lmb_pressed || type === "Perfect";
+        const shouldCount = !countOnlyLMB() || lmb_pressed || type === "Perfect" || type === "Good";
 
         if (shouldCount) {
-          switch (type) {
-            case "Early":
-              setEarlyStrafes(a => [finalDuration, ...a]);
-              break;
-            case "Late":
-              setLateStrafes(a => [finalDuration, ...a]);
-              break;
-            case "Perfect":
-              setPerfectStrafes(a => [finalDuration, ...a]);
-              break;
-          }
-
-          setTotalStrafes(a => [strafe, ...a]);
+          batch(() => {
+            if (type === "Early") setEarlyStrafes(a => [strafeObj, ...a]);
+            else if (type === "Good") setGoodStrafes(a => [strafeObj, ...a]);
+            else if (type === "Perfect") setPerfectStrafes(a => [strafeObj, ...a]);
+            else if (type === "Late") setLateStrafes(a => [strafeObj, ...a]);
+          });
+          playBeep(type);
         }
       });
     };
-
-    onCleanup(() => {
-      if (typeof unlistenStrafe === "function") unlistenStrafe();
-    });
-
-    setupListeners();
+    setup();
+    onCleanup(() => unlisten?.());
   });
+
+  // All stats
+  const allStats = createMemo(() => ({
+    alls: getStats([...earlyStrafes(), ...goodStrafes(), ...perfectStrafes(), ...lateStrafes()].map(s => s.duration)),
+    early: getStats(earlyStrafes().map(s => s.duration)),
+    good: getStats(goodStrafes().map(s => s.duration)),
+    perfect: getStats(perfectStrafes().map(s => s.duration)),
+    late: getStats(lateStrafes().map(s => s.duration))
+  }));
+
+  // Fired (LMB) stats – ONLY where lmb_pressed === true
+  const firedEarly = createMemo(() => earlyStrafes().filter(s => s.lmb_pressed).map(s => s.duration));
+  const firedGood = createMemo(() => goodStrafes().filter(s => s.lmb_pressed).map(s => s.duration));
+  const firedPerfect = createMemo(() => perfectStrafes().filter(s => s.lmb_pressed).map(s => s.duration));
+  const firedLate = createMemo(() => lateStrafes().filter(s => s.lmb_pressed).map(s => s.duration));
+
+  const firedStats = createMemo(() => ({
+    alls: getStats([...firedEarly(), ...firedGood(), ...firedPerfect(), ...firedLate()]),
+    early: getStats(firedEarly()),
+    good: getStats(firedGood()),
+    perfect: getStats(firedPerfect()),
+    late: getStats(firedLate())
+  }));
 
   return (
     <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
-      {/* Header */}
+      {/* Header with sound toggles */}
       <div className="flex justify-between items-center px-8 select-none">
         <div className="flex justify-center items-center flex-1">
-          <h1 className="mr-3 drop-shadow-lg py-4 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">
-            PatrikZero's
-          </h1>
-          <h1 className="py-4 text-4xl font-bold text-center pointer-events-none">
-            Strafe Evaluation
-          </h1>
+          <h1 className="mr-3 drop-shadow-lg py-4 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">PatrikZero's</h1>
+          <h1 className="py-4 text-4xl font-bold text-center pointer-events-none">Strafe Evaluation</h1>
         </div>
-
         <div className="flex items-center gap-4">
-          {/* Count only on LMB toggle */}
           <label className="flex items-center gap-2 cursor-pointer select-none text-sm">
-            <input
-              type="checkbox"
-              checked={countOnlyLMB()}
-              onChange={(e) => setCountOnlyLMB(e.target.checked)}
-              className="w-5 h-5 accent-primary cursor-pointer"
-            />
+            <input type="checkbox" checked={countOnlyLMB()} onChange={e => setCountOnlyLMB(e.target.checked)} className="w-5 h-5 accent-primary cursor-pointer" />
             <span className="font-medium">Count only on LMB</span>
           </label>
 
-          <button
-            onClick={toggleTheme}
-            class="px-6 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95"
-          >
+          <div className="flex gap-2 text-xs">
+            {Object.keys(soundEnabled()).map(t => (
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input type="checkbox" checked={soundEnabled()[t]} onChange={e => setSoundEnabled(prev => ({ ...prev, [t]: e.target.checked }))} />
+                <span>{t}</span>
+              </label>
+            ))}
+          </div>
+
+          <button onClick={toggleTheme} class="px-6 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95">
             {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
           </button>
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main content */}
       <div className="justify-between flex-grow flex p-4 gap-4">
-        <div className="flex flex-col rounded-xl border border-white/30 dark:border-white/10 m-0 p-4 w-[50%] bg-secondary/50 dark:bg-secondary/30 shadow-xl">
-          <div className="flex justify-between mb-4">
-            <h2 className="select-none text-2xl font-bold">Statistics</h2>
-            <button
-              className="text-bright select-none shadow-md px-5 py-1 rounded-md bg-primary hover:scale-110 active:scale-95 transition-all"
-              onClick={resetStrafes}
-            >
-              Reset
-            </button>
-          </div>
-          <Stats 
-            earlyStrafes={earlyStrafes()} 
-            lateStrafes={lateStrafes()} 
-            perfectStrafes={perfectStrafes()} 
-          />
+        {/* All Strafes */}
+        <div className="flex-1 rounded-xl border border-white/30 dark:border-white/10 p-4 bg-secondary/50 dark:bg-secondary/30 shadow-xl">
+          <h2 className="text-2xl font-bold mb-4">All Strafes</h2>
+          <StatsTable alls={allStats().alls} early={allStats().early} good={allStats().good} perfect={allStats().perfect} late={allStats().late} />
         </div>
 
+        {/* Fired during strafe (LMB only) */}
+        <div className="flex-1 rounded-xl border border-white/30 dark:border-white/10 p-4 bg-secondary/50 dark:bg-secondary/30 shadow-xl">
+          <h2 className="text-2xl font-bold mb-4">Fired during strafe (LMB)</h2>
+          <StatsTable alls={firedStats().alls} early={firedStats().early} good={firedStats().good} perfect={firedStats().perfect} late={firedStats().late} />
+        </div>
+
+        {/* Chart */}
         <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl">
-          <MyChart 
-            earlyStrafes={earlyStrafes()} 
-            lateStrafes={lateStrafes()} 
-            perfectStrafes={perfectStrafes()} 
+          <MyChart
+            earlyStrafes={earlyStrafes().map(s => s.duration)}
+            goodStrafes={goodStrafes().map(s => s.duration)}
+            perfectStrafes={perfectStrafes().map(s => s.duration)}
+            lateStrafes={lateStrafes().map(s => s.duration)}
           />
         </div>
       </div>
 
-      {/* WASD Area */}
       <div className="h-32 mb-4 flex items-center justify-center">
         <WASD />
       </div>
 
-      {/* History Bar */}
+      {/* History – last 100 only */}
       <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3 scrollbar-hide">
-        <For each={totalStrafes()}>
-          {(strafe) => (
-            <div className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1">
-              <p className="font-bold text-center text-sm">{strafe.type}</p>
-              <p className="text-center text-sm">{draw_time(strafe.duration)}</p>
-            </div>
-          )}
+        <For each={(() => {
+          const all = [...earlyStrafes(), ...goodStrafes(), ...perfectStrafes(), ...lateStrafes()];
+          return all.slice(0, 100).sort((a, b) => b.duration - a.duration); // newest first
+        })()}>
+          {(strafe) => <StrafePill type={strafe.type} duration={strafe.duration} />}
         </For>
       </div>
     </div>
