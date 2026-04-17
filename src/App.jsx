@@ -146,7 +146,7 @@ const MyChart = (props) => {
   return <Bar data={chartData()} options={chartOptions()} />;
 };
 
-function WASD(props) {
+function WASD() {
   const [aPressed, setAPressed] = createSignal(false);
   const [dPressed, setDPressed] = createSignal(false);
 
@@ -172,13 +172,14 @@ function WASD(props) {
   async function simulatePerfect() { const delay = 40; setAPressed(true); setTimeout(() => setAPressed(false), 500); setTimeout(() => setDPressed(true), 500 + delay); setTimeout(() => setDPressed(false), 1000 + delay); }
 
   return (
-    <div className="flex group justify-center items-center w-full h-full">
+    <div className="flex justify-center items-center w-full h-full">   {/* ← group removed here */}
       <div className="flex flex-col basis-0 flex-grow items-end opacity-0 -translate-x-2 duration-200 group-hover:opacity-100 group-hover:translate-x-0">
         <button className="wasd-button text-white bg-[#e07e6f]" onClick={simulateEarly}>Early</button>
-		    <button className="wasd-button text-white bg-[#e8c38a]" onClick={simulateLate}>Late</button>
-		    <button className="wasd-button text-white bg-[#5fd38d]" onClick={simulatePerfect}>Perfect</button>
+        <button className="wasd-button text-white bg-[#e8c38a]" onClick={simulateLate}>Late</button>
+        <button className="wasd-button text-white bg-[#5fd38d]" onClick={simulatePerfect}>Perfect</button>
       </div>
-      <div className="flex justify-center basis-0 flex-grow">
+
+      <div className="flex justify-center basis-0 flex-grow group">   {/* ← group added here */}
         <div className="select-none pointer-events-none text-dark dark:text-bright flex justify-between w-40 text-center font-bold text-xl">
           <div className={`flex border border-dark/20 dark:border-bright/20 border-r border-b shadow-lg border-b-dark/50 dark:border-b-bright/50 w-16 h-16 rounded-md justify-center items-center duration-75 transition-all ${aPressed() ? "bg-accent/70 scale-100 translate-y-[4px]" : "bg-secondary/10 dark:bg-secondary/20"}`}>
             <p>A</p>
