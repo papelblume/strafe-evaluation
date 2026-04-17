@@ -41,7 +41,6 @@ function getOccurance(duration_array, binSize = 5) {
   return out;
 }
 
-// Helper components
 function StrafePill(props) {
   const colorMap = { Early: "#e06c75", Good: "#b5ac8c", Perfect: "#88a56f", Late: "#a5c5ae" };
   return (
@@ -151,55 +150,27 @@ function WASD() {
   const [aPressed, setAPressed] = createSignal(false);
   const [dPressed, setDPressed] = createSignal(false);
 
-createEffect(() => {
+  createEffect(() => {
     let unlistenA, unlistenD, unlistenReleaseA, unlistenReleaseD;
-
     const setupListeners = async () => {
       unlistenA = await listen('a-pressed', () => setAPressed(true));
       unlistenD = await listen('d-pressed', () => setDPressed(true));
       unlistenReleaseA = await listen('a-released', () => setAPressed(false));
       unlistenReleaseD = await listen('d-released', () => setDPressed(false));
     };
-
     onCleanup(() => {
       if (typeof unlistenA === "function") unlistenA();
       if (typeof unlistenD === "function") unlistenD();
       if (typeof unlistenReleaseA === "function") unlistenReleaseA();
       if (typeof unlistenReleaseD === "function") unlistenReleaseD();
     });
-
     setupListeners();
   });
 
-  async function simulateEarly() {
-    setAPressed(true);
-    setTimeout(() => setDPressed(true), 500);
-    setTimeout(() => setAPressed(false), 850);
-    setTimeout(() => setDPressed(false), 1350);
-  }
-
-  async function simulateLate() {
-    setAPressed(true);
-    setTimeout(() => setAPressed(false), 500);
-    setTimeout(() => setDPressed(true), 850);
-    setTimeout(() => setDPressed(false), 1350);
-  }
-
-  async function simulatePerfect() {
-    const delay = 20;
-    setAPressed(true);
-    setTimeout(() => setAPressed(false), 500);
-    setTimeout(() => setDPressed(true), 500 + delay);
-    setTimeout(() => setDPressed(false), 1000 + delay);
-  }
-
-  async function simulateGood() {
-    const delay = 80; // 41-80 ms range
-    setAPressed(true);
-    setTimeout(() => setAPressed(false), 500);
-    setTimeout(() => setDPressed(true), 500 + delay);
-    setTimeout(() => setDPressed(false), 1000 + delay);
-  }
+  async function simulateEarly() { /* original */ setAPressed(true); setTimeout(() => setDPressed(true), 500); setTimeout(() => setAPressed(false), 850); setTimeout(() => setDPressed(false), 1350); }
+  async function simulateLate() { /* original */ setAPressed(true); setTimeout(() => setAPressed(false), 500); setTimeout(() => setDPressed(true), 850); setTimeout(() => setDPressed(false), 1350); }
+  async function simulatePerfect() { const delay = 20; setAPressed(true); setTimeout(() => setAPressed(false), 500); setTimeout(() => setDPressed(true), 500 + delay); setTimeout(() => setDPressed(false), 1000 + delay); }
+  async function simulateGood() { const delay = 60; setAPressed(true); setTimeout(() => setAPressed(false), 500); setTimeout(() => setDPressed(true), 500 + delay); setTimeout(() => setDPressed(false), 1000 + delay); }
 
   return (
     <div className="flex group justify-center items-center w-full h-full">
@@ -207,6 +178,7 @@ createEffect(() => {
         <button className="wasd-button text-white bg-secondary" onClick={simulateEarly}>Early</button>
         <button className="wasd-button text-white bg-accent" onClick={simulateLate}>Late</button>
         <button className="wasd-button text-white bg-[#b5ac8c]" onClick={simulatePerfect}>Perfect</button>
+        <button className="wasd-button text-white bg-[#b5ac8c]" onClick={simulateGood}>Good</button>
       </div>
 
       <div className="flex justify-center basis-0 flex-grow">
@@ -226,7 +198,7 @@ createEffect(() => {
 }
 
 function App() {
-  const [earlyStrafes, setEarlyStrafes] = createSignal([]);   // array of {duration, lmb_pressed}
+  const [earlyStrafes, setEarlyStrafes] = createSignal([]);
   const [goodStrafes, setGoodStrafes] = createSignal([]);
   const [perfectStrafes, setPerfectStrafes] = createSignal([]);
   const [lateStrafes, setLateStrafes] = createSignal([]);
@@ -263,7 +235,6 @@ function App() {
     });
   }
 
-  // Strafe listener
   createEffect(() => {
     let unlisten;
     const setup = async () => {
@@ -289,7 +260,6 @@ function App() {
     onCleanup(() => unlisten?.());
   });
 
-  // All stats
   const allStats = createMemo(() => ({
     alls: getStats([...earlyStrafes(), ...goodStrafes(), ...perfectStrafes(), ...lateStrafes()].map(s => s.duration)),
     early: getStats(earlyStrafes().map(s => s.duration)),
@@ -298,7 +268,6 @@ function App() {
     late: getStats(lateStrafes().map(s => s.duration))
   }));
 
-  // Fired (LMB) stats – ONLY where lmb_pressed === true
   const firedEarly = createMemo(() => earlyStrafes().filter(s => s.lmb_pressed).map(s => s.duration));
   const firedGood = createMemo(() => goodStrafes().filter(s => s.lmb_pressed).map(s => s.duration));
   const firedPerfect = createMemo(() => perfectStrafes().filter(s => s.lmb_pressed).map(s => s.duration));
@@ -314,7 +283,6 @@ function App() {
 
   return (
     <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
-      {/* Header with sound toggles */}
       <div className="flex justify-between items-center px-8 select-none">
         <div className="flex justify-center items-center flex-1">
           <h1 className="mr-3 drop-shadow-lg py-4 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">PatrikZero's</h1>
@@ -341,28 +309,22 @@ function App() {
         </div>
       </div>
 
-      {/* Main content */}
       <div className="justify-between flex-grow flex p-4 gap-4">
-        {/* All Strafes */}
         <div className="flex-1 rounded-xl border border-white/30 dark:border-white/10 p-4 bg-secondary/50 dark:bg-secondary/30 shadow-xl">
-          <h2 className="text-2xl font-bold mb-4">All Strafes</h2>
+          <div className="flex justify-between mb-4">
+            <h2 className="text-2xl font-bold">All Strafes</h2>
+            <button onClick={resetStrafes} className="text-bright select-none shadow-md px-5 py-1 rounded-md bg-primary hover:scale-110 active:scale-95 transition-all">Reset</button>
+          </div>
           <StatsTable alls={allStats().alls} early={allStats().early} good={allStats().good} perfect={allStats().perfect} late={allStats().late} />
         </div>
 
-        {/* Fired during strafe (LMB only) */}
         <div className="flex-1 rounded-xl border border-white/30 dark:border-white/10 p-4 bg-secondary/50 dark:bg-secondary/30 shadow-xl">
           <h2 className="text-2xl font-bold mb-4">Fired during strafe (LMB)</h2>
           <StatsTable alls={firedStats().alls} early={firedStats().early} good={firedStats().good} perfect={firedStats().perfect} late={firedStats().late} />
         </div>
 
-        {/* Chart */}
         <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl">
-          <MyChart
-            earlyStrafes={earlyStrafes().map(s => s.duration)}
-            goodStrafes={goodStrafes().map(s => s.duration)}
-            perfectStrafes={perfectStrafes().map(s => s.duration)}
-            lateStrafes={lateStrafes().map(s => s.duration)}
-          />
+          <MyChart earlyStrafes={earlyStrafes().map(s => s.duration)} goodStrafes={goodStrafes().map(s => s.duration)} perfectStrafes={perfectStrafes().map(s => s.duration)} lateStrafes={lateStrafes().map(s => s.duration)} />
         </div>
       </div>
 
@@ -370,11 +332,10 @@ function App() {
         <WASD />
       </div>
 
-      {/* History – last 100 only */}
       <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3 scrollbar-hide">
         <For each={(() => {
           const all = [...earlyStrafes(), ...goodStrafes(), ...perfectStrafes(), ...lateStrafes()];
-          return all.slice(0, 100).sort((a, b) => b.duration - a.duration); // newest first
+          return all.slice(0, 100);
         })()}>
           {(strafe) => <StrafePill type={strafe.type} duration={strafe.duration} />}
         </For>
