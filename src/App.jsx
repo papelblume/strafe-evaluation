@@ -161,6 +161,21 @@ function Stats(props) {
     }));
   });
 
+  // Calculate percentages
+  const totalSamples = () => stats().alls.samples;
+  
+  const earlyPercent = () => totalSamples() > 0 
+    ? Math.round((stats().early.samples / totalSamples()) * 100) 
+    : 0;
+  
+  const latePercent = () => totalSamples() > 0 
+    ? Math.round((stats().late.samples / totalSamples()) * 100) 
+    : 0;
+  
+  const perfectPercent = () => totalSamples() > 0 
+    ? Math.round((stats().perfect.samples / totalSamples()) * 100) 
+    : 0;
+
   return (
     <div className="flex flex-col justify-center items-center flex-grow">
       <table style="width:100%">
@@ -213,6 +228,15 @@ function Stats(props) {
             <td>{stats().early.samples}</td>
             <td>{stats().late.samples}</td>
             <td>{stats().perfect.samples}</td>
+          </tr>
+          
+          {/* NEW: Percentage row */}
+          <tr className="font-medium border-t border-dark/30 dark:border-bright/30">
+            <th>%</th>
+            <td className="text-bright/70 dark:text-bright/70">-</td>
+            <td>{earlyPercent()}%</td>
+            <td>{latePercent()}%</td>
+            <td>{perfectPercent()}%</td>
           </tr>
         </tbody>
       </table>
