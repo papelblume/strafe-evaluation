@@ -318,125 +318,73 @@ function App() {
   });
 
   return (
-    <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
-      {/* Header */}
-      <div className="flex justify-between items-center px-6 py-3 select-none">
-        {/* Left: Title */}
-        <div className="flex items-center">
-          <h1 className="mr-3 drop-shadow-lg py-2 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">
-            PatrikZero's
-          </h1>
-          <h1 className="py-2 text-4xl font-bold text-center pointer-events-none">
-            Strafe Evaluation
-          </h1>
-        </div>
-
-        {/* Center: Controls */}
-        <div className="flex flex-col items-center gap-3 flex-1 max-w-md">
-          {/* Row 1: Volume + Count only on LMB */}
-          <div className="flex items-center gap-6 w-full justify-center">
-            <div className="flex items-center gap-2 text-xs">
-              <span className="font-medium text-bright/70 whitespace-nowrap">Vol:</span>
-              <input 
-                type="range" 
-                min="0" 
-                max="1" 
-                step="0.01" 
-                value={volume()} 
-                onInput={e => setVolume(parseFloat(e.target.value))} 
-                className="w-28 accent-primary" 
-              />
-            </div>
-
-            <label className="flex items-center gap-2 cursor-pointer select-none text-sm">
-              <input 
-                type="checkbox" 
-                checked={countOnlyLMB()} 
-                onChange={e => setCountOnlyLMB(e.target.checked)} 
-                className="w-5 h-5 accent-primary cursor-pointer" 
-              />
-              <span className="font-medium whitespace-nowrap">Count only on LMB</span>
-            </label>
-          </div>
-
-          {/* Row 2: Sound checkboxes */}
-          <div className="flex gap-4 text-xs items-center">
-            <span className="font-medium text-bright/70 whitespace-nowrap">Sound:</span>
-            {Object.keys(soundEnabled()).map(t => (
-              <label key={t} className="flex items-center gap-1 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={soundEnabled()[t]} 
-                  onChange={e => setSoundEnabled(prev => ({ ...prev, [t]: e.target.checked }))} 
-                />
-                <span>{t}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Right: Theme Toggle */}
+{/* Main Content - Shorter Panels */}
+<div className="flex flex-grow flex-col p-3 gap-4 overflow-hidden">
+  {/* Top Row: Statistics + Chart (now shorter) */}
+  <div className="flex gap-4 flex-1 min-h-0">  {/* min-h-0 is important for flex children to shrink */}
+    
+    {/* Statistics Panel - Shorter */}
+    <div className="flex flex-col rounded-xl border border-white/30 dark:border-white/10 p-4 
+                    w-[50%] bg-secondary/50 dark:bg-secondary/30 shadow-xl 
+                    h-fit max-h-[45vh]">   {/* ← This controls the height */}
+      <div className="flex justify-between mb-3">
+        <h2 className="select-none text-2xl font-bold">Statistics</h2>
         <button 
-          onClick={toggleTheme} 
-          className="px-6 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
+          onClick={resetStrafes} 
+          className="text-bright select-none shadow-md px-5 py-1 rounded-md bg-primary hover:scale-110 active:scale-95 transition-all"
         >
-          {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
+          Reset
         </button>
       </div>
-
-      {/* Main Content */}
-      <div className="justify-between flex-grow flex p-3 gap-4">
-        {/* Statistics Panel */}
-        <div className="flex flex-col rounded-xl border border-white/30 dark:border-white/10 p-4 w-[50%] bg-secondary/50 dark:bg-secondary/30 shadow-xl">
-          <div className="flex justify-between mb-4">
-            <h2 className="select-none text-2xl font-bold">Statistics</h2>
-            <button onClick={resetStrafes} className="text-bright select-none shadow-md px-5 py-1 rounded-md bg-primary hover:scale-110 active:scale-95 transition-all">Reset</button>
-          </div>
-          <StatsTable
-            alls={allStats().alls}
-            early={allStats().early}
-            good={allStats().good}
-            perfect={allStats().perfect}
-            late={allStats().late}
-            lmbFired={lmbFired()}
-          />
-        </div>
-
-        {/* Chart Panel */}
-        <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl">
-          <MyChart
-            earlyStrafes={allStrafes().filter(s => s.type === "Early").map(s => s.duration)}
-            goodStrafes={allStrafes().filter(s => s.type === "Good").map(s => s.duration)}
-            perfectStrafes={allStrafes().filter(s => s.type === "Perfect").map(s => s.duration)}
-            lateStrafes={allStrafes().filter(s => s.type === "Late").map(s => s.duration)}
-          />
-        </div>
-      </div>
-
-      {/* WASD Visualizer */}
-      <div className="h-32 mb-4 flex items-center justify-center">
-        <WASD />
-      </div>
-
-      {/* History Bar - Most recent 100 strafes in correct order */}
-      <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3 scrollbar-hide">
-        <For each={recentStrafes()}>
-          {(strafe) => (
-            <div 
-              className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1"
-            >
-              <p 
-                className="font-bold text-center text-sm" 
-                style={{ color: colorMap[strafe.type] }}
-              >
-                {strafe.type}
-              </p>
-              <p className="text-center text-sm">{draw_time(strafe.duration)}</p>
-            </div>
-          )}
-        </For>
+      <div className="flex-1 overflow-auto">
+        <StatsTable
+          alls={allStats().alls}
+          early={allStats().early}
+          good={allStats().good}
+          perfect={allStats().perfect}
+          late={allStats().late}
+          lmbFired={lmbFired()}
+        />
       </div>
     </div>
+
+    {/* Chart Panel - Shorter */}
+    <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl 
+                    h-fit max-h-[45vh]">   {/* ← This controls the height */}
+      <h2 className="select-none text-2xl font-bold mb-3">Strafe Timing Chart</h2>
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <MyChart
+          earlyStrafes={allStrafes().filter(s => s.type === "Early").map(s => s.duration)}
+          goodStrafes={allStrafes().filter(s => s.type === "Good").map(s => s.duration)}
+          perfectStrafes={allStrafes().filter(s => s.type === "Perfect").map(s => s.duration)}
+          lateStrafes={allStrafes().filter(s => s.type === "Late").map(s => s.duration)}
+        />
+      </div>
+    </div>
+  </div>
+
+  {/* WASD Visualizer */}
+  <div className="h-32 flex items-center justify-center flex-shrink-0">
+    <WASD />
+  </div>
+
+  {/* History Bar */}
+  <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3 scrollbar-hide flex-shrink-0">
+    <For each={recentStrafes()}>
+      {(strafe) => (
+        <div 
+          key={/* add key if possible */}
+          className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1"
+        >
+          <p className="font-bold text-center text-sm" style={{ color: colorMap[strafe.type] }}>
+            {strafe.type}
+          </p>
+          <p className="text-center text-sm">{draw_time(strafe.duration)}</p>
+        </div>
+      )}
+    </For>
+  </div>
+</div>
   );
 }
 
