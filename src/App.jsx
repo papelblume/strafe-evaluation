@@ -42,10 +42,15 @@ function getOccurance(duration_array, binSize = 5) {
 }
 
 function StrafePill(props) {
-  const colorMap = { Early: "#e06c75", Good: "#b5ac8c", Perfect: "#88a56f", Late: "#a5c5ae" };
+  const colorMap = {
+    Early: "#f16a5c",
+    Good: "#95d26f",
+    Perfect: "#34d27a",
+    Late: "#f7b46f"
+  };
   return (
     <div className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1">
-      <p className="font-bold text-center text-sm" style={{ color: colorMap[props.type] || "#e8e8e8" }}>{props.type}</p>
+      <p className="font-bold text-center text-sm" style={{ color: colorMap[props.type] }}>{props.type}</p>
       <p className="text-center text-sm">{draw_time(props.duration)}</p>
     </div>
   );
@@ -120,10 +125,10 @@ const MyChart = (props) => {
   const [chartData, setChartData] = createSignal({
     labels: labels(),
     datasets: [
-      { label: 'Early', data: [], borderRadius: 5, backgroundColor: "#e06c75" },
-      { label: 'Good', data: [], borderRadius: 5, backgroundColor: "#b5ac8c" },
-      { label: 'Perfect', data: [], borderRadius: 5, backgroundColor: "#88a56f" },
-      { label: 'Late', data: [], borderRadius: 5, backgroundColor: "#a5c5ae" },
+      { label: 'Early', data: [], borderRadius: 5, backgroundColor: "#f16a5c" },
+      { label: 'Good', data: [], borderRadius: 5, backgroundColor: "#95d26f" },
+      { label: 'Perfect', data: [], borderRadius: 5, backgroundColor: "#34d27a" },
+      { label: 'Late', data: [], borderRadius: 5, backgroundColor: "#f7b46f" },
     ],
   });
 
@@ -133,10 +138,10 @@ const MyChart = (props) => {
     setChartData({
       labels: labels(),
       datasets: [
-        { label: 'Early', data: getOccurance(props.earlyStrafes, binSize), borderRadius: 5, backgroundColor: "#e06c75" },
-        { label: 'Good', data: getOccurance(props.goodStrafes, binSize), borderRadius: 5, backgroundColor: "#b5ac8c" },
-        { label: 'Perfect', data: getOccurance(props.perfectStrafes, binSize), borderRadius: 5, backgroundColor: "#88a56f" },
-        { label: 'Late', data: getOccurance(props.lateStrafes, binSize), borderRadius: 5, backgroundColor: "#a5c5ae" },
+        { label: 'Early', data: getOccurance(props.earlyStrafes, binSize), borderRadius: 5, backgroundColor: "#f16a5c" },
+        { label: 'Good', data: getOccurance(props.goodStrafes, binSize), borderRadius: 5, backgroundColor: "#95d26f" },
+        { label: 'Perfect', data: getOccurance(props.perfectStrafes, binSize), borderRadius: 5, backgroundColor: "#34d27a" },
+        { label: 'Late', data: getOccurance(props.lateStrafes, binSize), borderRadius: 5, backgroundColor: "#f7b46f" },
       ],
     });
   });
@@ -298,12 +303,15 @@ function App() {
 
   return (
     <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
-      <div className="flex justify-between items-center px-8 select-none">
+      {/* More compact header */}
+      <div className="flex justify-between items-center px-6 py-3 select-none">
         <div className="flex justify-center items-center flex-1">
-          <h1 className="mr-3 drop-shadow-lg py-4 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">PatrikZero's</h1>
-          <h1 className="py-4 text-4xl font-bold text-center pointer-events-none">Strafe Evaluation</h1>
+          <h1 className="mr-3 drop-shadow-lg py-2 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">PatrikZero's</h1>
+          <h1 className="py-2 text-4xl font-bold text-center pointer-events-none">Strafe Evaluation</h1>
         </div>
-        <div className="flex items-center gap-4">
+
+        <div className="flex items-center gap-5">
+          {/* Count only on LMB moved here */}
           <label className="flex items-center gap-2 cursor-pointer select-none text-sm">
             <input type="checkbox" checked={countOnlyLMB()} onChange={e => setCountOnlyLMB(e.target.checked)} className="w-5 h-5 accent-primary cursor-pointer" />
             <span className="font-medium">Count only on LMB</span>
@@ -330,7 +338,8 @@ function App() {
         </div>
       </div>
 
-      <div className="justify-between flex-grow flex p-4 gap-4">
+      {/* Slightly more compact main area */}
+      <div className="justify-between flex-grow flex p-3 gap-4">
         <div className="flex flex-col rounded-xl border border-white/30 dark:border-white/10 p-4 w-[50%] bg-secondary/50 dark:bg-secondary/30 shadow-xl">
           <div className="flex justify-between mb-4">
             <h2 className="select-none text-2xl font-bold">Statistics</h2>
@@ -360,16 +369,10 @@ function App() {
         <WASD />
       </div>
 
-      {/* FIXED: History bar - newest on the LEFT */}
+      {/* History bar unchanged in size */}
       <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3 scrollbar-hide">
         <For each={(() => {
-          const combined = [
-            ...earlyStrafes(),
-            ...goodStrafes(),
-            ...perfectStrafes(),
-            ...lateStrafes()
-          ];
-          // Sort by insertion order (newest first) using index trick
+          const combined = [...earlyStrafes(), ...goodStrafes(), ...perfectStrafes(), ...lateStrafes()];
           return combined
             .map((item, index) => ({ ...item, originalIndex: index }))
             .sort((a, b) => b.originalIndex - a.originalIndex)
