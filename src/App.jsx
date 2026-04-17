@@ -317,7 +317,7 @@ function App() {
     return allStrafes().slice(0, 100);
   });
 
-    return (  return (
+    return (
     <div className="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
       {/* Header */}
       <div className="flex justify-between items-center px-6 py-3 select-none">
