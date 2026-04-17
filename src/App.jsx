@@ -1,4 +1,4 @@
-import { createSignal, onMount, createEffect, onCleanup, For, createMemo, batch } from "solid-js";
+import { createSignal, onMount, createEffect, onCleanup, For, createMemo } from "solid-js";
 import "./App.css";
 import { Chart, registerables } from 'chart.js';
 import { Bar } from 'solid-chartjs';
@@ -58,11 +58,11 @@ function StrafePill(props) {
 function StatRow(props) {
   return (
     <tr>
-      <th>{props.label}</th>
-      <td>{draw_time(props.alls)}</td>
-      <td>{draw_time(props.early)}</td>
-      <td>{draw_time(props.perfect)}</td>
-      <td>{draw_time(props.late)}</td>
+      <th className="px-4">{props.label}</th>
+      <td className="px-3 text-center">{draw_time(props.alls)}</td>
+      <td className="px-3 text-center">{draw_time(props.early)}</td>
+      <td className="px-3 text-center">{draw_time(props.perfect)}</td>
+      <td className="px-3 text-center">{draw_time(props.late)}</td>
     </tr>
   );
 }
@@ -75,11 +75,11 @@ function StatsTable(props) {
     <table style="width:100%">
       <tbody className="text-center">
         <tr>
-          <th></th>
-          <th className="w-16">All</th>
-          <th className="w-16">Early</th>
-          <th className="w-16">Perfect</th>
-          <th className="w-16">Late</th>
+          <th className="px-4"></th>
+          <th className="w-20 px-3">All</th>
+          <th className="w-20 px-3">Early</th>
+          <th className="w-20 px-3">Perfect</th>
+          <th className="w-20 px-3">Late</th>
         </tr>
         <StatRow label="Median" alls={props.alls.median} early={props.early.median} perfect={props.perfect.median} late={props.late.median} />
         <StatRow label="Average" alls={props.alls.average} early={props.early.average} perfect={props.perfect.average} late={props.late.average} />
@@ -87,25 +87,25 @@ function StatsTable(props) {
         <StatRow label="Max" alls={props.alls.max} early={props.early.max} perfect={props.perfect.max} late={props.late.max} />
         <StatRow label="Std. Deviation" alls={props.alls.std_deviation} early={props.early.std_deviation} perfect={props.perfect.std_deviation} late={props.late.std_deviation} />
         <tr>
-          <th>Samples</th>
-          <td>{props.alls.samples}</td>
-          <td>{props.early.samples}</td>
-          <td>{props.perfect.samples}</td>
-          <td>{props.late.samples}</td>
+          <th className="px-4">Samples</th>
+          <td className="px-3">{props.alls.samples}</td>
+          <td className="px-3">{props.early.samples}</td>
+          <td className="px-3">{props.perfect.samples}</td>
+          <td className="px-3">{props.late.samples}</td>
         </tr>
         <tr className="font-medium border-t border-dark/30 dark:border-bright/30">
-          <th>%</th>
-          <td className="text-bright/70">-</td>
-          <td>{p(props.early.samples)}%</td>
-          <td>{p(props.perfect.samples)}%</td>
-          <td>{p(props.late.samples)}%</td>
+          <th className="px-4">%</th>
+          <td className="px-3 text-dark/70 dark:text-bright/70">-</td>
+          <td className="px-3">{p(props.early.samples)}%</td>
+          <td className="px-3">{p(props.perfect.samples)}%</td>
+          <td className="px-3">{p(props.late.samples)}%</td>
         </tr>
-        <tr className="font-medium border-t border-dark/30 dark:border-bright/30 bg-secondary/20 dark:bg-secondary/30">
-          <th>Fired (LMB)</th>
-          <td>{props.lmbFired.samples}</td>
-          <td>{p(props.lmbFired.early)}%</td>
-          <td>{p(props.lmbFired.perfect)}%</td>
-          <td>{p(props.lmbFired.late)}%</td>
+        <tr className="font-medium border-t border-dark/30 dark:border-bright/30 bg-secondary/30 dark:bg-secondary/40">
+          <th className="px-4">Fired (LMB)</th>
+          <td className="px-3">{props.lmbFired.samples}</td>
+          <td className="px-3">{p(props.lmbFired.early)}%</td>
+          <td className="px-3">{p(props.lmbFired.perfect)}%</td>
+          <td className="px-3">{p(props.lmbFired.late)}%</td>
         </tr>
       </tbody>
     </table>
@@ -140,7 +140,7 @@ const MyChart = (props) => {
 
   const chartOptions = createMemo(() => ({
     responsive: true,
-    maintainAspectRatio: true,
+    maintainAspectRatio: false,
     scales: {
       x: { stacked: true, ticks: { color: 'var(--chart-text)', font: { size: 12 } }, grid: { color: 'var(--chart-grid)' } },
       y: { stacked: true, ticks: { color: 'var(--chart-text)', font: { size: 12 } }, grid: { color: 'var(--chart-grid)' } }
@@ -148,7 +148,7 @@ const MyChart = (props) => {
     plugins: { legend: { labels: { color: 'var(--chart-text)' } } }
   }));
 
-  return <Bar data={chartData()} options={chartOptions()} width={4} height={3} />;
+  return <Bar data={chartData()} options={chartOptions()} />;
 };
 
 function WASD() {
@@ -213,12 +213,31 @@ function App() {
   };
   
   let audioContext;
+
   onMount(() => {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Load saved settings from localStorage
+    const savedVolume = localStorage.getItem('volume');
+    if (savedVolume) setVolume(parseFloat(savedVolume));
+
+    const savedRequireLMB = localStorage.getItem('requireLMB');
+    if (savedRequireLMB !== null) setCountOnlyLMB(savedRequireLMB === 'true');
+
+    const savedSound = localStorage.getItem('soundEnabled');
+    if (savedSound) {
+      try { setSoundEnabled(JSON.parse(savedSound)); } catch(e) {}
+    }
+
     const saved = localStorage.getItem('theme');
     if (saved) setIsDark(saved === 'dark');
     else setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
+
+  // Save to localStorage whenever values change
+  createEffect(() => { localStorage.setItem('volume', volume().toString()); });
+  createEffect(() => { localStorage.setItem('requireLMB', countOnlyLMB().toString()); });
+  createEffect(() => { localStorage.setItem('soundEnabled', JSON.stringify(soundEnabled())); });
 
   createEffect(() => {
     if (isDark()) {
@@ -236,7 +255,6 @@ function App() {
     const gain = audioContext.createGain();
     osc.connect(gain).connect(audioContext.destination);
     
-    // Updated frequencies
     const frequency = type === "Perfect" ? 880 : type === "Early" ? 220 : 440;
     osc.frequency.setValueAtTime(frequency, audioContext.currentTime);
     
@@ -261,11 +279,10 @@ function App() {
         const finalDuration = type === "Early" ? -duration : duration;
         const strafeObj = { type, duration: finalDuration, lmb_pressed };
 
-        // Consistent behavior for ALL strafe types
         const shouldCount = !countOnlyLMB() || lmb_pressed;
 
         if (shouldCount) {
-          setAllStrafes(prev => [strafeObj, ...prev]); // Most recent first
+          setAllStrafes(prev => [strafeObj, ...prev]);
           playBeep(type);
         }
       });
@@ -274,7 +291,6 @@ function App() {
     onCleanup(() => unlisten?.());
   });
 
-  // Statistics
   const allStats = createMemo(() => {
     const allDurations = allStrafes().map(s => s.duration);
     const earlyDurations = allStrafes().filter(s => s.type === "Early").map(s => s.duration);
@@ -302,10 +318,7 @@ function App() {
     };
   });
 
-  // Most recent 100 strafes (chronological order preserved)
-  const recentStrafes = createMemo(() => {
-    return allStrafes().slice(0, 100);
-  });
+  const recentStrafes = createMemo(() => allStrafes().slice(0, 100));
 
   return (
     <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
@@ -326,7 +339,7 @@ function App() {
           {/* Row 1: Volume + Require LMB */}
           <div className="flex items-center gap-6 justify-center">
             <div className="flex items-center gap-2 text-xs">
-              <span className="font-medium text-bright/70 whitespace-nowrap">Vol:</span>
+              <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Vol:</span>
               <input
                 type="range"
                 min="0"
@@ -347,7 +360,7 @@ function App() {
               />
               <span className="font-medium whitespace-nowrap">Require LMB</span>
               
-              {/* Tooltip - now positioned BELOW the checkbox so it never gets clipped by the window top */}
+              {/* Tooltip - positioned below to stay inside window */}
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
                 Only count strafes if Left Mouse Button is pressed during the strafe
               </div>
@@ -356,7 +369,7 @@ function App() {
 
           {/* Row 2: Sound checkboxes with speaker emoji */}
           <div className="flex gap-4 text-xs items-center">
-            <span className="font-medium text-bright/70 whitespace-nowrap">Sound:</span>
+            <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Sound:</span>
             {Object.keys(soundEnabled()).map((t) => (
               <label key={t} className="flex items-center gap-1 cursor-pointer">
                 <input
@@ -409,10 +422,10 @@ function App() {
             </div>
           </div>
 
-          {/* Chart Panel */}
+          {/* Chart Panel - now fills completely */}
           <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl 
-                          max-h-[420px]">   
-            <div className="flex-1 min-h-0 overflow-hidden">
+                          max-h-[420px] flex-1">
+            <div className="flex-1 min-h-0 w-full">
               <MyChart
                 earlyStrafes={allStrafes().filter(s => s.type === "Early").map(s => s.duration)}
                 perfectStrafes={allStrafes().filter(s => s.type === "Perfect").map(s => s.duration)}
@@ -431,17 +444,7 @@ function App() {
         <div className="h-[100px] flex-shrink-0 flex flex-row p-3 bg-accent/25 dark:bg-accent/20 overflow-x-auto w-full gap-3 scrollbar-hide">
           <For each={recentStrafes()}>
             {(strafe) => (
-              <div 
-                className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1"
-              >
-                <p 
-                  className="font-bold text-center text-sm" 
-                  style={{ color: colorMap[strafe.type] }}
-                >
-                  {strafe.type}
-                </p>
-                <p className="text-center text-sm">{draw_time(strafe.duration)}</p>
-              </div>
+              <StrafePill type={strafe.type} duration={strafe.duration} />
             )}
           </For>
         </div>
