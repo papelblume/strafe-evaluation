@@ -242,7 +242,7 @@ function App() {
     const osc = audioContext.createOscillator();
     const gain = audioContext.createGain();
     osc.connect(gain).connect(audioContext.destination);
-    osc.frequency.setValueAtTime(type === "Perfect" ? 880 : type === "Good" ? 660 : type === "Late" ? 440 : 220, audioContext.currentTime);
+    osc.frequency.setValueAtTime(type === "Perfect" ? 880 : type === "Good" ? 660 : type === "Early" ? 440 : 220, audioContext.currentTime);
     gain.gain.value = volume();
     osc.start();
     gain.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.15);
@@ -308,43 +308,62 @@ function App() {
         <div className="flex justify-center items-center flex-1">
           <h1 className="mr-3 drop-shadow-lg py-2 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">PatrikZero's</h1>
           <h1 className="py-2 text-4xl font-bold text-center pointer-events-none">Strafe Evaluation</h1>
-      </div>
-
-      {/* Right side controls */}
-      <div className="flex flex-col items-end gap-3">
-        {/* Sound row */}
-        <div className="flex items-center gap-4">
-          <span className="font-medium text-bright/70 text-sm">Sound:</span>
-          <div className="flex gap-3 text-xs">
-            {Object.keys(soundEnabled()).map(t => (
-              <label key={t} className="flex items-center gap-1 cursor-pointer">
-                <input type="checkbox" checked={soundEnabled()[t]} onChange={e => setSoundEnabled(prev => ({ ...prev, [t]: e.target.checked }))} />
-                <span>{t} 🔊</span>
-              </label>
-            ))}
-          </div>
         </div>
+
+        <div className="flex flex-col items-end gap-3">
+          {/* Sound row */}
+          <div className="flex items-center gap-4">
+            <span className="font-medium text-bright/70 text-sm">Sound:</span>
+            <div className="flex gap-3 text-xs">
+              {Object.keys(soundEnabled()).map(t => (
+                <label key={t} className="flex items-center gap-1 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={soundEnabled()[t]} 
+                    onChange={e => setSoundEnabled(prev => ({ ...prev, [t]: e.target.checked }))} 
+                  />
+                  <span>{t} 🔊</span>
+                </label>
+              ))}
+            </div>
+          </div>
 
           {/* Second row: Count only on LMB + Volume + Theme */}
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2 cursor-pointer select-none text-sm">
-              <input type="checkbox" checked={countOnlyLMB()} onChange={e => setCountOnlyLMB(e.target.checked)} className="w-5 h-5 accent-primary cursor-pointer" />
+              <input 
+                type="checkbox" 
+                checked={countOnlyLMB()} 
+                onChange={e => setCountOnlyLMB(e.target.checked)} 
+                className="w-5 h-5 accent-primary cursor-pointer" 
+              />
               <span className="font-medium">Count only on LMB</span>
             </label>
 
             <div className="flex items-center gap-2 text-xs">
               <span className="font-medium text-bright/70">Vol:</span>
-              <input type="range" min="0" max="1" step="0.01" value={volume()} onInput={e => setVolume(parseFloat(e.target.value))} className="w-28 accent-primary" />
+              <input 
+                type="range" 
+                min="0" 
+                max="1" 
+                step="0.01" 
+                value={volume()} 
+                onInput={e => setVolume(parseFloat(e.target.value))} 
+                className="w-28 accent-primary" 
+              />
             </div>
 
-            <button onClick={toggleTheme} className="px-6 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95">
+            <button 
+              onClick={toggleTheme} 
+              class="px-6 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95"
+            >
               {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Slightly more compact main area */}
+      {/* Main content */}
       <div className="justify-between flex-grow flex p-3 gap-4">
         <div className="flex flex-col rounded-xl border border-white/30 dark:border-white/10 p-4 w-[50%] bg-secondary/50 dark:bg-secondary/30 shadow-xl">
           <div className="flex justify-between mb-4">
@@ -361,7 +380,7 @@ function App() {
           />
         </div>
 
-        <div className="flex flex-col rounded-xl border border-white/30 dark:border-white/10 p-4 w-[50%] bg-secondary/50 dark:bg-secondary/30 shadow-xl">
+        <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl">
           <MyChart
             earlyStrafes={earlyStrafes().map(s => s.duration)}
             goodStrafes={goodStrafes().map(s => s.duration)}
@@ -375,12 +394,18 @@ function App() {
         <WASD />
       </div>
 
-      {/* History Bar */}
-      <div className="flex flex-row p-3 bg-secondary/50 dark:bg-secondary/30 h-30 overflow-x-auto w-full gap-3 scrollbar-hide">
-        <For each={totalStrafes()}>
+      {/* Older History Bar style restored */}
+      <div className="flex flex-row p-3 bg-accent/25 dark:bg-accent/20 h-20 overflow-x-auto w-full gap-3 scrollbar-hide">
+        <For each={(() => {
+          const combined = [...earlyStrafes(), ...goodStrafes(), ...perfectStrafes(), ...lateStrafes()];
+          return combined
+            .map((item, index) => ({ ...item, originalIndex: index }))
+            .sort((a, b) => b.originalIndex - a.originalIndex)
+            .slice(0, 100);
+        })()}>
           {(strafe) => (
             <div className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1">
-              <p className="font-bold text-center text-sm">{strafe.type}</p>
+              <p className="font-bold text-center text-sm" style={{ color: StrafePillColor(strafe.type) }}>{strafe.type}</p>
               <p className="text-center text-sm">{draw_time(strafe.duration)}</p>
             </div>
           )}
@@ -389,5 +414,16 @@ function App() {
     </div>
   );
 }
+
+// Helper for inline color (to avoid re-defining colorMap)
+const StrafePillColor = (type) => {
+  const map = {
+    Early: "#f16a5c",
+    Good: "#95d26f",
+    Perfect: "#34d27a",
+    Late: "#f7b46f"
+  };
+  return map[type] || "#e8e8e8";
+};
 
 export default App;
