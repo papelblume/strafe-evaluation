@@ -303,16 +303,17 @@ function App() {
 
   return (
     <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
-      {/* Fixed header - matches the first screenshot exactly */}
-<div className="flex items-center justify-between px-6 py-4 bg-dark dark:bg-dark border-b border-dark/30 select-none">
-  {/* Left: Title with accent on "Strafe" */}
-  <div>
-    <h1 className="text-3xl font-bold text-bright drop-shadow-lg">
-      PatrikZero's <span className="text-accent">Strafe Evaluation</span>
-    </h1>
-  </div>
+       {/* Header */}
+      <div className="flex justify-between items-center px-8 select-none">
+        <div className="flex justify-center items-center flex-1">
+          <h1 className="mr-3 drop-shadow-lg py-4 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">
+            PatrikZero's
+          </h1>
+          <h1 className="py-4 text-4xl font-bold text-center pointer-events-none">
+            Strafe Evaluation
+          </h1>
+        </div>
 
-  {/* Right: All controls in one clean horizontal row */}
   <div className="flex items-center gap-6">
     {/* Volume */}
     <div className="flex items-center gap-3">
@@ -328,7 +329,7 @@ function App() {
       />
     </div>
 
-    {/* Count only on LMB - forced single line */}
+    {/* Count only on LMB */}
     <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-bright whitespace-nowrap">
       <input 
         type="checkbox" 
@@ -339,31 +340,10 @@ function App() {
       <span className="font-medium">Count only on LMB</span>
     </label>
 
-    {/* Sound toggles */}
-    <div className="flex items-center gap-4 text-sm">
-      <span className="text-bright/70 font-medium">Sound:</span>
-      <div className="flex gap-4">
-        {Object.keys(soundEnabled()).map(t => (
-          <label key={t} className="flex items-center gap-1 cursor-pointer text-bright">
-            <input 
-              type="checkbox" 
-              checked={soundEnabled()[t]} 
-              onChange={e => setSoundEnabled(prev => ({ ...prev, [t]: e.target.checked }))} 
-              className="accent-primary"
-            />
-            <span>{t} 🔊</span>
-          </label>
-        ))}
-      </div>
-    </div>
-
-    {/* Bright Mode Button - green like the screenshot */}
     <button 
       onClick={toggleTheme} 
-      class="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#88a56f] hover:bg-[#95d26f] text-white font-medium shadow-md transition-all active:scale-95"
-    >
-      {isDark() ? '☀️' : '🌙'} 
-      <span>Bright Mode</span>
+      class="px-6 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95">
+      {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
     </button>
   </div>
 </div>
