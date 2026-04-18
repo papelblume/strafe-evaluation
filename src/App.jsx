@@ -255,23 +255,49 @@ function App() {
     }
   });
 
-  const playBeep = (type) => {
-    if (!soundEnabled()[type] || !audioContext) return;
-    const osc = audioContext.createOscillator();
-    const gain = audioContext.createGain();
+const playBeep = (type) => {
+  if (!soundEnabled()[type] || !audioContext) return;
+  const osc  = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  const now  = audioContext.currentTime;
+
+  if (type === "Perfect") {
+    // 880 Hz · Sine · no extra processing
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(880, now);
     osc.connect(gain).connect(audioContext.destination);
-    
-    const frequency = type === "Perfect" ? 880 : type === "Early" ? 220 : 440;
-    osc.frequency.setValueAtTime(frequency, audioContext.currentTime);
-    
-    gain.gain.value = volume();
-    osc.start();
-    gain.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.15);
-    osc.stop(audioContext.currentTime + 0.2);
-  };
+    gain.gain.setValueAtTime(volume(), now);
+    gain.gain.linearRampToValueAtTime(0, now + 0.15);
+  } else if (type === "Late") {
+    // 640 Hz · Triangle · short attack
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(640, now);
+    osc.connect(gain).connect(audioContext.destination);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(volume(), now + 0.012); // sharp transient
+    gain.gain.linearRampToValueAtTime(0, now + 0.15);
+  } else if (type === "Early") {
+    // 280 Hz · Square · pitch fall + short attack + low-pass filter
+    const filter = audioContext.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(900, now);   // tame square's upper harmonics
+    filter.Q.setValueAtTime(0.8, now);
+    osc.type = "square";
+    osc.frequency.setValueAtTime(280, now);
+    osc.frequency.linearRampToValueAtTime(140, now + 0.18); // pitch fall
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioContext.destination);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(volume(), now + 0.012); // sharp transient
+    gain.gain.linearRampToValueAtTime(0, now + 0.15);
+  }
+  osc.start(now);
+  osc.stop(now + 0.2);
+};
 
   const toggleTheme = () => setIsDark(prev => !prev);
-
   function resetStrafes() {
     setAllStrafes([]);
   }
