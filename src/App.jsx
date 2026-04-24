@@ -66,6 +66,10 @@ function StatsTable(props) {
   const total = () => props.alls.samples;
   const p = (n) => total() > 0 ? Math.round((n / total()) * 100) : 0;
 
+  // New: percentages WITHIN LMB strafes only
+  const lmbTotal = () => props.lmbFired.samples;
+  const pLMB = (n) => lmbTotal() > 0 ? Math.round((n / lmbTotal()) * 100) : 0;
+
   return (
     <table style="width:100%">
       <tbody className="text-center">
@@ -81,38 +85,35 @@ function StatsTable(props) {
         <StatRow label="Min" alls={props.alls.min} early={props.early.min} perfect={props.perfect.min} late={props.late.min} />
         <StatRow label="Max" alls={props.alls.max} early={props.early.max} perfect={props.perfect.max} late={props.late.max} />
         <StatRow label="Std. Deviation" alls={props.alls.std_deviation} early={props.early.std_deviation} perfect={props.perfect.std_deviation} late={props.late.std_deviation} />
+        
+        {/* NEW: All Strafes row (renamed + percentages) */}
         <tr>
-          <th className="px-4">Samples</th>
+          <th className="px-4">All Strafes</th>
           <td className="px-3">{props.alls.samples}</td>
-          <td className="px-3">{props.early.samples}</td>
-          <td className="px-3">{props.perfect.samples}</td>
-          <td className="px-3">{props.late.samples}</td>
-        </tr>
-        <tr className="font-medium border-t border-dark/30 dark:border-bright/30">
-          <th className="px-4">All Strafes %</th>
-          <td className="px-3 text-dark/70 dark:text-bright/70">-</td>
           <td className="px-3">{p(props.early.samples)}%</td>
           <td className="px-3">{p(props.perfect.samples)}%</td>
           <td className="px-3">{p(props.late.samples)}%</td>
         </tr>
+
+        {/* UPDATED: Strafe+LMB row */}
         <tr className="font-medium border-t border-dark/30 dark:border-bright/30 bg-secondary/30 dark:bg-secondary/40">
-  <th className="px-4 flex items-center gap-1.5 justify-start">
-    Strafe+LMB
-    <span className="relative group cursor-help">
-      <span className="text-xs text-dark/60 dark:text-bright/60 select-none">ⓘ</span>
-      
-      {/* Tooltip - positioned to the right to avoid being cut off */}
-      <div className="absolute hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-2 rounded shadow-lg 
-                      left-full ml-2 top-1/2 -translate-y-1/2 w-72 z-50 pointer-events-none">
-        Counts only strafes where Left Mouse Button (LMB) was pressed during the strafe
-      </div>
-    </span>
-  </th>
-  <td className="px-3">{props.lmbFired.samples}</td>
-  <td className="px-3">{p(props.lmbFired.early)}%</td>
-  <td className="px-3">{p(props.lmbFired.perfect)}%</td>
-  <td className="px-3">{p(props.lmbFired.late)}%</td>
-</tr>
+          <th className="px-4 flex items-center gap-1.5 justify-start">
+            Strafe+LMB
+            <span className="relative group cursor-help">
+              <span className="text-xs text-dark/60 dark:text-bright/60 select-none">ⓘ</span>
+              
+              {/* Tooltip - positioned to the right to avoid being cut off */}
+              <div className="absolute hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-2 rounded shadow-lg 
+                              left-full ml-2 top-1/2 -translate-y-1/2 w-72 z-50 pointer-events-none">
+                Counts only strafes where Left Mouse Button (LMB) was pressed during the strafe
+              </div>
+            </span>
+          </th>
+          <td className="px-3">{props.lmbFired.samples}</td>
+          <td className="px-3">{pLMB(props.lmbFired.early)}%</td>
+          <td className="px-3">{pLMB(props.lmbFired.perfect)}%</td>
+          <td className="px-3">{pLMB(props.lmbFired.late)}%</td>
+        </tr>
       </tbody>
     </table>
   );
