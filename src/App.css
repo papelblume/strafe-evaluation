@@ -29,13 +29,13 @@ body {
 
 /* ====================== CHART THEME COLORS ====================== */
 :root {
-  --chart-text: #e8e8e8;   /* Light mode - dark text */
-  --chart-grid: rgba(58, 63, 54, 0.12);
+  --chart-text: #25291e;   /* Light mode - dark text on light bg */
+  --chart-grid: rgba(37, 41, 30, 0.12);
 }
 
 .dark {
-  --chart-text: #3a3f36;   /* Dark mode - bright text */
-  --chart-grid: rgba(232, 232, 232, 0.12);
+  --chart-text: #e8ead4;   /* Dark mode - light text on dark bg */
+  --chart-grid: rgba(232, 234, 212, 0.12);
 }
 
 /* Hide scrollbar but keep scrolling functionality */
