@@ -76,9 +76,9 @@ function StatsTable(props) {
         <tr>
           <th className="px-4"></th>
           <th className="w-20 px-3">All</th>
-          <th className="w-20 px-3">Early</th>
-          <th className="w-20 px-3">Perfect</th>
-          <th className="w-20 px-3">Late</th>
+          <th className="w-20 px-3" style={{ color: "#f16a5c" }}>Early</th>
+          <th className="w-20 px-3" style={{ color: "#34d27a" }}>Perfect</th>
+          <th className="w-20 px-3" style={{ color: "#f7b46f" }}>Late</th>
         </tr>
         <StatRow label="Median" alls={props.alls.median} early={props.early.median} perfect={props.perfect.median} late={props.late.median} />
         <StatRow label="Average" alls={props.alls.average} early={props.early.average} perfect={props.perfect.average} late={props.late.average} />
@@ -352,6 +352,7 @@ const playBeep = (type) => {
   });
 
   const recentStrafes = createMemo(() => allStrafes().slice(0, 100));
+  const perfectCount = createMemo(() => allStrafes().filter(s => s.type === 'Perfect').length);
 
   return (
     <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
@@ -359,10 +360,10 @@ const playBeep = (type) => {
       <div className="flex justify-between items-center px-6 py-3 select-none">
         {/* Left: Title */}
         <div className="flex items-center">
-          <h1 className="mr-3 drop-shadow-lg py-2 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">
+          <h1 className="mr-3 drop-shadow-lg py-2 text-4xl pointer-events-none font-bold text-dark dark:text-bright text-stroke italic">
             PatrikZero's
           </h1>
-          <h1 className="py-2 text-4xl font-bold text-center pointer-events-none">
+          <h1 className="py-2 text-4xl font-bold pointer-events-none">
             Strafe Evaluation
           </h1>
         </div>
@@ -453,6 +454,9 @@ const playBeep = (type) => {
                 lmbFired={lmbFired()}
               />
             </div>
+            <div className="pt-2 text-center italic font-bold text-lg" style={{ color: "#34d27a" }}>
+              Perfect {perfectCount()}x
+            </div>
           </div>
 
           {/* Chart Panel - now fills completely */}
@@ -474,7 +478,7 @@ const playBeep = (type) => {
         </div>
 
         {/* History Bar */}
-        <div className="h-[100px] flex-shrink-0 flex flex-row p-3 bg-accent/25 dark:bg-accent/20 overflow-x-auto w-full gap-3 scrollbar-hide">
+        <div className="h-[100px] flex-shrink-0 flex flex-row p-3 bg-accent/25 dark:bg-accent/20 overflow-x-auto w-full gap-3 scrollbar-hide rounded-xl">
           <For each={recentStrafes()}>
             {(strafe) => (
               <StrafePill 
