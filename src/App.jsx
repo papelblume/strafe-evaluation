@@ -76,9 +76,9 @@ function StatsTable(props) {
         <tr>
           <th className="px-4"></th>
           <th className="w-20 px-3">All</th>
-          <th className="w-20 px-3" style={{ color: "#f16a5c" }}>Early</th>
-          <th className="w-20 px-3" style={{ color: "#34d27a" }}>Perfect</th>
-          <th className="w-20 px-3" style={{ color: "#f7b46f" }}>Late</th>
+          <th className="w-20 px-3 text-[#f16a5c]">Early</th>
+          <th className="w-20 px-3 text-[#34d27a]">Perfect</th>
+          <th className="w-20 px-3 text-[#f7b46f]">Late</th>
         </tr>
         <StatRow label="Median" alls={props.alls.median} early={props.early.median} perfect={props.perfect.median} late={props.late.median} />
         <StatRow label="Average" alls={props.alls.average} early={props.early.average} perfect={props.perfect.average} late={props.late.average} />
@@ -145,15 +145,19 @@ const MyChart = (props) => {
     });
   });
 
-  const chartOptions = createMemo(() => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      x: { stacked: true, ticks: { color: 'var(--chart-text)', font: { size: 12 } }, grid: { color: 'var(--chart-grid)' } },
-      y: { stacked: true, ticks: { color: 'var(--chart-text)', font: { size: 12 } }, grid: { color: 'var(--chart-grid)' } }
-    },
-    plugins: { legend: { labels: { color: 'var(--chart-text)' } } }
-  }));
+  const chartOptions = createMemo(() => {
+    const textColor = props.isDark ? '#e8ead4' : '#25291e';
+    const gridColor = props.isDark ? 'rgba(232,234,212,0.12)' : 'rgba(37,41,30,0.12)';
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { stacked: true, ticks: { color: textColor, font: { size: 12 } }, grid: { color: gridColor } },
+        y: { stacked: true, ticks: { color: textColor, font: { size: 12 } }, grid: { color: gridColor } }
+      },
+      plugins: { legend: { labels: { color: textColor } } }
+    };
+  });
 
   return <Bar data={chartData()} options={chartOptions()} />;
 };
@@ -360,10 +364,10 @@ const playBeep = (type) => {
       <div className="flex justify-between items-center px-6 py-3 select-none">
         {/* Left: Title */}
         <div className="flex items-center">
-          <h1 className="mr-3 drop-shadow-lg py-2 text-4xl pointer-events-none font-bold text-dark dark:text-bright text-stroke italic">
+          <h1 className="mr-3 drop-shadow-lg py-2 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">
             PatrikZero's
           </h1>
-          <h1 className="py-2 text-4xl font-bold pointer-events-none">
+          <h1 className="py-2 text-4xl font-bold text-center pointer-events-none">
             Strafe Evaluation
           </h1>
         </div>
@@ -385,12 +389,12 @@ const playBeep = (type) => {
               />
             </div>
 
-            <label className="flex items-center gap-2 cursor-pointer select-none text-sm group relative">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
               <input
                 type="checkbox"
                 checked={countOnlyLMB()}
                 onChange={(e) => setCountOnlyLMB(e.target.checked)}
-                className="w-5 h-5 accent-primary cursor-pointer"
+                className="w-4 h-4 accent-primary cursor-pointer"
               />
               <span className="font-medium whitespace-nowrap">Require LMB</span>
               
@@ -440,7 +444,7 @@ const playBeep = (type) => {
           {/* Statistics Panel */}
           <div className="flex flex-col w-[50%] rounded-xl border border-white/30 dark:border-white/10 p-4 
                           bg-secondary/50 dark:bg-secondary/30 shadow-xl 
-                          max-h-[420px]">   
+                          max-h-[420px] text-[#3a3f36] dark:text-[#e8e8e8]">
             <div className="flex justify-between mb-4">
               <h2 className="select-none text-2xl font-bold">Statistics</h2>
               <button onClick={resetStrafes} className="text-bright select-none shadow-md px-5 py-1 rounded-md bg-primary hover:scale-110 active:scale-95 transition-all">Reset</button>
@@ -454,9 +458,9 @@ const playBeep = (type) => {
                 lmbFired={lmbFired()}
               />
             </div>
-            <div className="pt-2 text-center italic font-bold text-lg" style={{ color: "#34d27a" }}>
+            <p className="pt-2 text-center italic font-bold text-lg text-[#34d27a]">
               Perfect {perfectCount()}x
-            </div>
+            </p>
           </div>
 
           {/* Chart Panel - now fills completely */}
@@ -464,6 +468,7 @@ const playBeep = (type) => {
                           max-h-[420px] flex-1">
             <div className="flex-1 min-h-0 w-full">
               <MyChart
+                isDark={isDark()}
                 earlyStrafes={allStrafes().filter(s => s.type === "Early").map(s => s.duration)}
                 perfectStrafes={allStrafes().filter(s => s.type === "Perfect").map(s => s.duration)}
                 lateStrafes={allStrafes().filter(s => s.type === "Late").map(s => s.duration)}
