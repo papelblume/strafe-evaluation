@@ -19,6 +19,7 @@ struct Payload {
 const PERFECT_MAX_MS: u128 = 80;
 const LATE_MAX_MS: u128 = 200;
 const SPAM_COOLDOWN_MS: u128 = 60;
+const POST_STRAFE_LMB_WINDOW_MS: u128 = 100;
 
 fn main() {
     tauri::Builder::default()
@@ -39,6 +40,9 @@ fn main() {
 
                 let mut lmb_during_strafe: bool = false;
                 let mut last_strafe_time: Option<Instant> = None;
+
+                let mut pending_strafe: Option<(String, u128)> = None;
+                let mut pending_strafe_time: Option<Instant> = None;
 
                 let is_azerty = is_azerty_layout();
 
@@ -94,14 +98,26 @@ fn main() {
                         if !w_pressed && !s_pressed && !shift_pressed && !ctrl_pressed {
                             if let Some(x) = right_released_time {
                                 if let Ok(elapsed) = x.elapsed() {
-                                    eval_understrafe(
+                                    if let Some((strafe_type, duration)) = eval_understrafe(
                                         elapsed,
                                         &mut right_released_time,
-                                        handle.clone(),
                                         &mut both_pressed_time,
                                         &mut lmb_during_strafe,
                                         &mut last_strafe_time,
-                                    );
+                                    ) {
+                                        if strafe_type == "Perfect" {
+                                            pending_strafe = Some((strafe_type, duration));
+                                            pending_strafe_time = Some(Instant::now());
+                                        } else {
+                                            // Late — emit immediately
+                                            let _ = handle.emit_all("strafe", Payload {
+                                                strafe_type,
+                                                duration,
+                                                lmb_pressed: lmb_during_strafe,
+                                            });
+                                            lmb_during_strafe = false;
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -116,14 +132,26 @@ fn main() {
                         if !w_pressed && !s_pressed && !shift_pressed && !ctrl_pressed {
                             if let Some(x) = left_released_time {
                                 if let Ok(elapsed) = x.elapsed() {
-                                    eval_understrafe(
+                                    if let Some((strafe_type, duration)) = eval_understrafe(
                                         elapsed,
                                         &mut left_released_time,
-                                        handle.clone(),
                                         &mut both_pressed_time,
                                         &mut lmb_during_strafe,
                                         &mut last_strafe_time,
-                                    );
+                                    ) {
+                                        if strafe_type == "Perfect" {
+                                            pending_strafe = Some((strafe_type, duration));
+                                            pending_strafe_time = Some(Instant::now());
+                                        } else {
+                                            // Late — emit immediately
+                                            let _ = handle.emit_all("strafe", Payload {
+                                                strafe_type,
+                                                duration,
+                                                lmb_pressed: lmb_during_strafe,
+                                            });
+                                            lmb_during_strafe = false;
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -140,13 +168,20 @@ fn main() {
                             if let Ok(elapsed) = start.elapsed() {
                                 // Only count strafe if W, S, Shift, and Ctrl are NOT pressed
                                 if !w_pressed && !s_pressed && !shift_pressed && !ctrl_pressed {
-                                    eval_overstrafe(
+                                    if let Some((strafe_type, duration)) = eval_overstrafe(
                                         elapsed,
                                         &mut both_pressed_time,
-                                        handle.clone(),
                                         &mut lmb_during_strafe,
                                         &mut last_strafe_time,
-                                    );
+                                    ) {
+                                        // Early — emit immediately
+                                        let _ = handle.emit_all("strafe", Payload {
+                                            strafe_type,
+                                            duration,
+                                            lmb_pressed: lmb_during_strafe,
+                                        });
+                                        lmb_during_strafe = false;
+                                    }
                                 } else {
                                     both_pressed_time = None;
                                     lmb_during_strafe = false;
@@ -156,9 +191,28 @@ fn main() {
                     }
 
                     // Continuous LMB tracking during strafe window
-                    if both_pressed_time.is_some() || left_released_time.is_some() || right_released_time.is_some() {
+                    if both_pressed_time.is_some() || left_released_time.is_some() || right_released_time.is_some() || pending_strafe.is_some() {
                         if LeftButton.is_pressed() {
                             lmb_during_strafe = true;
+                        }
+                    }
+
+                    // Pending Perfect strafe resolution
+                    if let Some((ref strafe_type, duration)) = pending_strafe.clone() {
+                        let lmb_now = LeftButton.is_pressed() || lmb_during_strafe;
+                        let window_expired = pending_strafe_time
+                            .map(|t| t.elapsed().as_millis() >= POST_STRAFE_LMB_WINDOW_MS)
+                            .unwrap_or(true);
+
+                        if lmb_now || window_expired {
+                            let _ = handle.emit_all("strafe", Payload {
+                                strafe_type: strafe_type.clone(),
+                                duration,
+                                lmb_pressed: lmb_now,
+                            });
+                            pending_strafe = None;
+                            pending_strafe_time = None;
+                            lmb_during_strafe = false;
                         }
                     }
                 }
@@ -173,21 +227,20 @@ fn main() {
 fn eval_understrafe(
     elapsed: Duration,
     released_time: &mut Option<SystemTime>,
-    app: AppHandle,
     both_pressed_time: &mut Option<SystemTime>,
     lmb_during: &mut bool,
     last_strafe_time: &mut Option<Instant>,
-) {
-    let time_passed_ms = elapsed.as_millis() as u128;
+) -> Option<(String, u128)> {
+    let time_passed_ms = elapsed.as_millis();
     if LeftButton.is_pressed() {
         *lmb_during = true;
     }
 
     // Anti-spam protection
     if let Some(last) = last_strafe_time {
-        if (last.elapsed().as_millis() as u128) < SPAM_COOLDOWN_MS {
+        if last.elapsed().as_millis() < SPAM_COOLDOWN_MS {
             *released_time = None;
-            return;
+            return None;
         }
     }
 
@@ -196,49 +249,36 @@ fn eval_understrafe(
     } else if time_passed_ms <= LATE_MAX_MS {
         "Late"
     } else {
-        return;
+        return None;
     };
 
-    let _ = app.emit_all(
-        "strafe",
-        Payload {
-            strafe_type: strafe_type.into(),
-            duration: time_passed_ms,
-            lmb_pressed: *lmb_during,
-        },
-    );
-
     *released_time = None;
+    *both_pressed_time = None;
     *lmb_during = false;
     *last_strafe_time = Some(Instant::now());
+    Some((strafe_type.into(), time_passed_ms))
 }
 
 fn eval_overstrafe(
     elapsed: Duration,
     both_pressed_time: &mut Option<SystemTime>,
-    app: AppHandle,
     lmb_during: &mut bool,
     last_strafe_time: &mut Option<Instant>,
-) {
-    let time_passed_ms = elapsed.as_millis() as u128;
+) -> Option<(String, u128)> {
+    let time_passed_ms = elapsed.as_millis();
     if LeftButton.is_pressed() {
         *lmb_during = true;
-    }
-
-    if time_passed_ms <= LATE_MAX_MS {
-        let _ = app.emit_all(
-            "strafe",
-            Payload {
-                strafe_type: "Early".into(),
-                duration: time_passed_ms,
-                lmb_pressed: *lmb_during,
-            },
-        );
     }
 
     *both_pressed_time = None;
     *lmb_during = false;
     *last_strafe_time = Some(Instant::now());
+
+    if time_passed_ms <= LATE_MAX_MS {
+        Some(("Early".into(), time_passed_ms))
+    } else {
+        None
+    }
 }
 
 fn is_azerty_layout() -> bool {
