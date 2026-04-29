@@ -44,6 +44,8 @@ fn main() {
                 let mut pending_strafe: Option<(String, u128)> = None;
                 let mut pending_strafe_time: Option<Instant> = None;
 
+                let mut early_fired: bool = false;
+
                 let is_azerty = is_azerty_layout();
 
                 loop {
@@ -67,6 +69,11 @@ fn main() {
                     }
                     if !ctrl_pressed && (LControlKey.is_pressed() || RControlKey.is_pressed()) {
                         ctrl_pressed = true;
+                    }
+
+                    // Reset early_fired when both keys are fully released
+                    if !left_pressed && !right_pressed {
+                        early_fired = false;
                     }
 
                     // D released
@@ -168,18 +175,29 @@ fn main() {
                             if let Ok(elapsed) = start.elapsed() {
                                 // Only count strafe if W, S, Shift, and Ctrl are NOT pressed
                                 if !w_pressed && !s_pressed && !shift_pressed && !ctrl_pressed {
-                                    if let Some((strafe_type, duration)) = eval_overstrafe(
-                                        elapsed,
-                                        &mut both_pressed_time,
-                                        &mut lmb_during_strafe,
-                                        &mut last_strafe_time,
-                                    ) {
-                                        // Early — emit immediately
-                                        let _ = handle.emit_all("strafe", Payload {
-                                            strafe_type,
-                                            duration,
-                                            lmb_pressed: lmb_during_strafe,
-                                        });
+                                    if !early_fired {
+                                        if let Some((strafe_type, duration)) = eval_overstrafe(
+                                            elapsed,
+                                            &mut both_pressed_time,
+                                            &mut lmb_during_strafe,
+                                            &mut last_strafe_time,
+                                        ) {
+                                            // Early — emit immediately
+                                            let _ = handle.emit_all("strafe", Payload {
+                                                strafe_type,
+                                                duration,
+                                                lmb_pressed: lmb_during_strafe,
+                                            });
+                                            lmb_during_strafe = false;
+                                            early_fired = true;
+                                        } else {
+                                            // Overlap exceeded LATE_MAX_MS — reset without emitting
+                                            both_pressed_time = None;
+                                            lmb_during_strafe = false;
+                                        }
+                                    } else {
+                                        // early_fired is true — skip this overlap, reset state only
+                                        both_pressed_time = None;
                                         lmb_during_strafe = false;
                                     }
                                 } else {
@@ -254,7 +272,6 @@ fn eval_understrafe(
 
     *released_time = None;
     *both_pressed_time = None;
-    *lmb_during = false;
     *last_strafe_time = Some(Instant::now());
     Some((strafe_type.into(), time_passed_ms))
 }
@@ -271,7 +288,6 @@ fn eval_overstrafe(
     }
 
     *both_pressed_time = None;
-    *lmb_during = false;
     *last_strafe_time = Some(Instant::now());
 
     if time_passed_ms <= LATE_MAX_MS {
