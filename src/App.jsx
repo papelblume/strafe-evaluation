@@ -41,7 +41,6 @@ function getOccurance(duration_array, binSize = 5) {
   return out;
 }
 
-// Format a millisecond duration compactly, returns "..." if not yet known
 function fmtMs(ms) {
   if (ms === null || ms === undefined) return "...";
   return Math.round(Math.abs(ms)) + "ms";
@@ -58,11 +57,13 @@ function StrafePill(props) {
   };
 
   return (
-    <div className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[76px] px-2 py-1 gap-0.5">
-      <p className="font-bold text-center text-sm leading-tight" style={{ color: props.color }}>{props.type}</p>
-      <p className="text-center text-xs leading-tight text-dark/60 dark:text-bright/60">{firstLabel()}: {fmtMs(props.firstKeyDurationMs)}</p>
-      <p className="text-center text-xs leading-tight">{fmtMs(props.duration)}</p>
-      <p className="text-center text-xs leading-tight text-dark/60 dark:text-bright/60">{secondLabel()}: {fmtMs(props.secondKeyDurationMs)}</p>
+    <div className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[76px] px-2 py-1 gap-0.5">
+      <p className="font-bold text-center text-sm" style={{ color: props.color }}>{props.type}</p>
+      <p className="text-center text-sm">{fmtMs(props.duration)}</p>
+      <div class="w-full">
+        <p className="text-left text-sm">{firstLabel()}: {fmtMs(props.firstKeyDurationMs)}</p>
+        <p className="text-left text-sm">{secondLabel()}: {fmtMs(props.secondKeyDurationMs)}</p>
+      </div>
     </div>
   );
 }
@@ -76,6 +77,17 @@ function StatRow(props) {
       <td className="px-3 text-center">{draw_time(props.perfect)}</td>
       <td className="px-3 text-center">{draw_time(props.late)}</td>
     </tr>
+  );
+}
+
+function TooltipCell(props) {
+  return (
+    <td className="px-3 relative group cursor-default text-center">
+      {props.display}
+      <div className="absolute hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-2 py-1 rounded shadow-lg bottom-full left-1/2 -translate-x-1/2 mb-1 whitespace-nowrap z-50 pointer-events-none">
+        {props.tooltip}
+      </div>
+    </td>
   );
 }
 
@@ -102,14 +114,25 @@ function StatsTable(props) {
         <StatRow label="Max" alls={props.alls.max} early={props.early.max} perfect={props.perfect.max} late={props.late.max} />
         <StatRow label="Std. Deviation" alls={props.alls.std_deviation} early={props.early.std_deviation} perfect={props.perfect.std_deviation} late={props.late.std_deviation} />
 
+        {/* All Strafes row — Early/Perfect/Late cells show count tooltip on hover */}
         <tr>
           <th className="px-4">All Strafes</th>
-          <td className="px-3">{props.alls.samples}</td>
-          <td className="px-3">{p(props.early.samples)}%</td>
-          <td className="px-3">{p(props.perfect.samples)}%</td>
-          <td className="px-3">{p(props.late.samples)}%</td>
+          <td className="px-3 text-center">{props.alls.samples}</td>
+          <TooltipCell
+            display={`${p(props.early.samples)}%`}
+            tooltip={`${props.early.samples} / ${props.alls.samples}`}
+          />
+          <TooltipCell
+            display={`${p(props.perfect.samples)}%`}
+            tooltip={`${props.perfect.samples} / ${props.alls.samples}`}
+          />
+          <TooltipCell
+            display={`${p(props.late.samples)}%`}
+            tooltip={`${props.late.samples} / ${props.alls.samples}`}
+          />
         </tr>
 
+        {/* Strafe+LMB row — Early/Perfect/Late cells show count tooltip on hover */}
         <tr className="font-medium border-t border-dark/30 dark:border-bright/30 bg-secondary/30 dark:bg-secondary/40">
           <th className="px-4 flex items-center gap-1.5 justify-start">
             Strafe+LMB
@@ -121,10 +144,19 @@ function StatsTable(props) {
               </div>
             </span>
           </th>
-          <td className="px-3">{props.lmbFired.samples}</td>
-          <td className="px-3">{pLMB(props.lmbFired.early)}%</td>
-          <td className="px-3">{pLMB(props.lmbFired.perfect)}%</td>
-          <td className="px-3">{pLMB(props.lmbFired.late)}%</td>
+          <td className="px-3 text-center">{props.lmbFired.samples}</td>
+          <TooltipCell
+            display={`${pLMB(props.lmbFired.early)}%`}
+            tooltip={`${props.lmbFired.early} / ${props.lmbFired.samples}`}
+          />
+          <TooltipCell
+            display={`${pLMB(props.lmbFired.perfect)}%`}
+            tooltip={`${props.lmbFired.perfect} / ${props.lmbFired.samples}`}
+          />
+          <TooltipCell
+            display={`${pLMB(props.lmbFired.late)}%`}
+            tooltip={`${props.lmbFired.late} / ${props.lmbFired.samples}`}
+          />
         </tr>
       </tbody>
     </table>
@@ -227,6 +259,8 @@ function App() {
   const [isDark, setIsDark] = createSignal(false);
   const [soundEnabled, setSoundEnabled] = createSignal({ Early: true, Perfect: true, Late: true });
   const [volume, setVolume] = createSignal(0.6);
+  const [showVolumeTooltip, setShowVolumeTooltip] = createSignal(false);
+  let volumeTooltipTimeout;
 
   const colorMap = {
     Early: "#f16a5c",
@@ -234,17 +268,14 @@ function App() {
     Late: "#f7b46f"
   };
 
-  // Key timing refs — plain JS variables, not reactive signals
   let aPressTime = 0;
   let dPressTime = 0;
   let aReleaseDuration = 0;
   let dReleaseDuration = 0;
   let aIsHeld = false;
   let dIsHeld = false;
-  // Tracks a strafe whose first key was still held when the strafe fired (Early tap case)
-  let pendingFirstKeyStrafe = null; // { id, firstKey }
-  // Holds a second-key release duration that arrived before its strafe was added to allStrafes
-  let pendingSecondKeyDuration = null; // { key, duration }
+  let pendingFirstKeyStrafe = null;
+  let pendingSecondKeyDuration = null;
   let strafeIdCounter = 0;
 
   let audioContext;
@@ -329,7 +360,6 @@ function App() {
     strafeIdCounter = 0;
   }
 
-  // Key timing listeners — track press/release times for pill duration display
   createEffect(() => {
     let unlistenAP, unlistenAR, unlistenDP, unlistenDR;
     const setup = async () => {
@@ -342,7 +372,6 @@ function App() {
         aReleaseDuration = Date.now() - aPressTime;
         aIsHeld = false;
 
-        // If an Early strafe is waiting for A's first-key duration, fill it in now
         if (pendingFirstKeyStrafe?.firstKey === "A") {
           const id = pendingFirstKeyStrafe.id;
           const dur = aReleaseDuration;
@@ -356,12 +385,10 @@ function App() {
           pendingFirstKeyStrafe = null;
         }
 
-        // A is the second key for strafes where first key was D
         const dur = aReleaseDuration;
         setAllStrafes(prev => {
           const idx = prev.findIndex(s => s.secondKeyDurationMs === null && s.firstKey === "D");
           if (idx === -1) {
-            // Strafe not yet in array (Early where releasing A ends the overlap)
             pendingSecondKeyDuration = { key: "A", duration: dur };
             return prev;
           }
@@ -380,7 +407,6 @@ function App() {
         dReleaseDuration = Date.now() - dPressTime;
         dIsHeld = false;
 
-        // If an Early strafe is waiting for D's first-key duration, fill it in now
         if (pendingFirstKeyStrafe?.firstKey === "D") {
           const id = pendingFirstKeyStrafe.id;
           const dur = dReleaseDuration;
@@ -394,12 +420,10 @@ function App() {
           pendingFirstKeyStrafe = null;
         }
 
-        // D is the second key for strafes where first key was A
         const dur = dReleaseDuration;
         setAllStrafes(prev => {
           const idx = prev.findIndex(s => s.secondKeyDurationMs === null && s.firstKey === "A");
           if (idx === -1) {
-            // Strafe not yet in array (Early where releasing D ends the overlap)
             pendingSecondKeyDuration = { key: "D", duration: dur };
             return prev;
           }
@@ -418,7 +442,6 @@ function App() {
     });
   });
 
-  // Listen for strafes from Tauri backend
   createEffect(() => {
     let unlisten;
     const setup = async () => {
@@ -432,10 +455,6 @@ function App() {
         const fk = first_key || "A";
         const sk = fk === "A" ? "D" : "A";
 
-        // Determine first key duration:
-        // For Perfect/Late: the first key was already released before strafe fires, so use stored duration.
-        // For Early where first key was released to end the overlap: also already in release duration.
-        // For Early where first key is STILL held (second key was tapped): mark as pending.
         let firstKeyDurationMs = null;
         let needsPendingFirstKey = false;
         if (fk === "A") {
@@ -452,9 +471,6 @@ function App() {
           }
         }
 
-        // Second key duration: normally null (key still held), but for Early where the
-        // releasing key ends the overlap, the release event fires before the strafe event,
-        // so pendingSecondKeyDuration may already have the answer.
         let secondKeyDurationMs = null;
         if (pendingSecondKeyDuration?.key === sk) {
           secondKeyDurationMs = pendingSecondKeyDuration.duration;
@@ -535,15 +551,27 @@ function App() {
           <div className="flex items-center gap-6 justify-center">
             <div className="flex items-center gap-2 text-xs">
               <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Vol:</span>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={volume()}
-                onInput={(e) => setVolume(parseFloat(e.target.value))}
-                className="w-28 accent-primary"
-              />
+              <div className="relative flex items-center">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={volume()}
+                  onInput={(e) => {
+                    setVolume(parseFloat(e.target.value));
+                    clearTimeout(volumeTooltipTimeout);
+                    setShowVolumeTooltip(true);
+                    volumeTooltipTimeout = setTimeout(() => setShowVolumeTooltip(false), 1200);
+                  }}
+                  className="w-28 accent-primary"
+                />
+                {showVolumeTooltip() && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-50">
+                    {Math.round(volume() * 100)}%
+                  </div>
+                )}
+              </div>
             </div>
 
             <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
@@ -632,12 +660,12 @@ function App() {
           </div>
         </div>
 
-        {/* WASD Visualizer — reduced height to accommodate taller history bar */}
+        {/* WASD Visualizer */}
         <div className="h-24 flex-shrink-0 flex items-center justify-center">
           <WASD colorMap={colorMap} />
         </div>
 
-        {/* History Bar — increased height to show 4-line pills */}
+        {/* History Bar */}
         <div className="h-[140px] flex-shrink-0 flex flex-row p-3 bg-accent/25 dark:bg-accent/20 overflow-x-auto w-full gap-3 scrollbar-hide rounded-xl">
           <For each={recentStrafes()}>
             {(strafe) => (
