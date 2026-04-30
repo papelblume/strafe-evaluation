@@ -41,11 +41,28 @@ function getOccurance(duration_array, binSize = 5) {
   return out;
 }
 
+// Format a millisecond duration compactly, returns "..." if not yet known
+function fmtMs(ms) {
+  if (ms === null || ms === undefined) return "...";
+  return Math.round(Math.abs(ms)) + "ms";
+}
+
 function StrafePill(props) {
+  const firstLabel = () => {
+    if (!props.firstKey) return "?";
+    return props.firstKey === "A" ? "L" : "R";
+  };
+  const secondLabel = () => {
+    if (!props.firstKey) return "?";
+    return props.firstKey === "A" ? "R" : "L";
+  };
+
   return (
-    <div className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[68px] px-2 py-1">
-      <p className="font-bold text-center text-sm" style={{ color: props.color }}>{props.type}</p>
-      <p className="text-center text-sm">{draw_time(props.duration)}</p>
+    <div className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[76px] px-2 py-1 gap-0.5">
+      <p className="font-bold text-center text-sm leading-tight" style={{ color: props.color }}>{props.type}</p>
+      <p className="text-center text-xs leading-tight text-dark/60 dark:text-bright/60">{firstLabel()}: {fmtMs(props.firstKeyDurationMs)}</p>
+      <p className="text-center text-xs leading-tight">{fmtMs(props.duration)}</p>
+      <p className="text-center text-xs leading-tight text-dark/60 dark:text-bright/60">{secondLabel()}: {fmtMs(props.secondKeyDurationMs)}</p>
     </div>
   );
 }
@@ -66,7 +83,6 @@ function StatsTable(props) {
   const total = () => props.alls.samples;
   const p = (n) => total() > 0 ? Math.round((n / total()) * 100) : 0;
 
-  // New: percentages WITHIN LMB strafes only
   const lmbTotal = () => props.lmbFired.samples;
   const pLMB = (n) => lmbTotal() > 0 ? Math.round((n / lmbTotal()) * 100) : 0;
 
@@ -85,8 +101,7 @@ function StatsTable(props) {
         <StatRow label="Min" alls={props.alls.min} early={props.early.min} perfect={props.perfect.min} late={props.late.min} />
         <StatRow label="Max" alls={props.alls.max} early={props.early.max} perfect={props.perfect.max} late={props.late.max} />
         <StatRow label="Std. Deviation" alls={props.alls.std_deviation} early={props.early.std_deviation} perfect={props.perfect.std_deviation} late={props.late.std_deviation} />
-        
-        {/* NEW: All Strafes row (renamed + percentages) */}
+
         <tr>
           <th className="px-4">All Strafes</th>
           <td className="px-3">{props.alls.samples}</td>
@@ -95,14 +110,11 @@ function StatsTable(props) {
           <td className="px-3">{p(props.late.samples)}%</td>
         </tr>
 
-        {/* UPDATED: Strafe+LMB row */}
         <tr className="font-medium border-t border-dark/30 dark:border-bright/30 bg-secondary/30 dark:bg-secondary/40">
           <th className="px-4 flex items-center gap-1.5 justify-start">
             Strafe+LMB
             <span className="relative group cursor-help">
               <span className="text-xs text-dark/60 dark:text-bright/60 select-none">ⓘ</span>
-              
-              {/* Tooltip - positioned to the right to avoid being cut off */}
               <div className="absolute hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-2 rounded shadow-lg 
                               left-full ml-2 top-1/2 -translate-y-1/2 w-72 z-50 pointer-events-none">
                 Counts only strafes where Left Mouse Button (LMB) was pressed during the strafe
@@ -191,8 +203,8 @@ function WASD(props) {
     <div className="flex group justify-center items-center w-full h-full">
       <div className="flex flex-col basis-0 flex-grow items-end opacity-0 -translate-x-2 duration-200 group-hover:opacity-100 group-hover:translate-x-0">
         <button className="wasd-button text-white bg-[#e07e6f]" onClick={simulateEarly}>Early</button>
-		    <button className="wasd-button text-white bg-[#e8c38a]" onClick={simulateLate}>Late</button>
-		    <button className="wasd-button text-white bg-[#5fd38d]" onClick={simulatePerfect}>Perfect</button>
+        <button className="wasd-button text-white bg-[#e8c38a]" onClick={simulateLate}>Late</button>
+        <button className="wasd-button text-white bg-[#5fd38d]" onClick={simulatePerfect}>Perfect</button>
       </div>
       <div className="flex justify-center basis-0 flex-grow">
         <div className="select-none pointer-events-none text-dark dark:text-bright flex justify-between w-40 text-center font-bold text-xl">
@@ -211,7 +223,6 @@ function WASD(props) {
 
 function App() {
   const [allStrafes, setAllStrafes] = createSignal([]);
-
   const [countOnlyLMB, setCountOnlyLMB] = createSignal(false);
   const [isDark, setIsDark] = createSignal(false);
   const [soundEnabled, setSoundEnabled] = createSignal({ Early: true, Perfect: true, Late: true });
@@ -222,13 +233,25 @@ function App() {
     Perfect: "#34d27a",
     Late: "#f7b46f"
   };
-  
+
+  // Key timing refs — plain JS variables, not reactive signals
+  let aPressTime = 0;
+  let dPressTime = 0;
+  let aReleaseDuration = 0;
+  let dReleaseDuration = 0;
+  let aIsHeld = false;
+  let dIsHeld = false;
+  // Tracks a strafe whose first key was still held when the strafe fired (Early tap case)
+  let pendingFirstKeyStrafe = null; // { id, firstKey }
+  // Holds a second-key release duration that arrived before its strafe was added to allStrafes
+  let pendingSecondKeyDuration = null; // { key, duration }
+  let strafeIdCounter = 0;
+
   let audioContext;
 
   onMount(() => {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-    // Load saved settings from localStorage
     const savedVolume = localStorage.getItem('volume');
     if (savedVolume) setVolume(parseFloat(savedVolume));
 
@@ -245,7 +268,6 @@ function App() {
     else setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
 
-  // Save to localStorage whenever values change
   createEffect(() => { localStorage.setItem('volume', volume().toString()); });
   createEffect(() => { localStorage.setItem('requireLMB', countOnlyLMB().toString()); });
   createEffect(() => { localStorage.setItem('soundEnabled', JSON.stringify(soundEnabled())); });
@@ -260,68 +282,203 @@ function App() {
     }
   });
 
-const playBeep = (type) => {
-  if (!soundEnabled()[type] || !audioContext) return;
-  const osc  = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-  const now  = audioContext.currentTime;
+  const playBeep = (type) => {
+    if (!soundEnabled()[type] || !audioContext) return;
+    const osc  = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const now  = audioContext.currentTime;
 
-  if (type === "Perfect") {
-    // 880 Hz · Sine · no extra processing
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(880, now);
-    osc.connect(gain).connect(audioContext.destination);
-    gain.gain.setValueAtTime(volume(), now);
-    gain.gain.linearRampToValueAtTime(0, now + 0.15);
-  } else if (type === "Late") {
-    // 640 Hz · Triangle · short attack
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime(640, now);
-    osc.connect(gain).connect(audioContext.destination);
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(volume(), now + 0.012); // sharp transient
-    gain.gain.linearRampToValueAtTime(0, now + 0.15);
-  } else if (type === "Early") {
-    // 280 Hz · Square · pitch fall + short attack + low-pass filter
-    const filter = audioContext.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.setValueAtTime(900, now);   // tame square's upper harmonics
-    filter.Q.setValueAtTime(0.8, now);
-    osc.type = "square";
-    osc.frequency.setValueAtTime(280, now);
-    osc.frequency.linearRampToValueAtTime(140, now + 0.18); // pitch fall
-
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(audioContext.destination);
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(volume(), now + 0.012); // sharp transient
-    gain.gain.linearRampToValueAtTime(0, now + 0.15);
-  }
-  osc.start(now);
-  osc.stop(now + 0.2);
-};
+    if (type === "Perfect") {
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, now);
+      osc.connect(gain).connect(audioContext.destination);
+      gain.gain.setValueAtTime(volume(), now);
+      gain.gain.linearRampToValueAtTime(0, now + 0.15);
+    } else if (type === "Late") {
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(640, now);
+      osc.connect(gain).connect(audioContext.destination);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(volume(), now + 0.012);
+      gain.gain.linearRampToValueAtTime(0, now + 0.15);
+    } else if (type === "Early") {
+      const filter = audioContext.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(900, now);
+      filter.Q.setValueAtTime(0.8, now);
+      osc.type = "square";
+      osc.frequency.setValueAtTime(280, now);
+      osc.frequency.linearRampToValueAtTime(140, now + 0.18);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioContext.destination);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(volume(), now + 0.012);
+      gain.gain.linearRampToValueAtTime(0, now + 0.15);
+    }
+    osc.start(now);
+    osc.stop(now + 0.2);
+  };
 
   const toggleTheme = () => setIsDark(prev => !prev);
+
   function resetStrafes() {
     setAllStrafes([]);
+    pendingFirstKeyStrafe = null;
+    pendingSecondKeyDuration = null;
+    strafeIdCounter = 0;
   }
+
+  // Key timing listeners — track press/release times for pill duration display
+  createEffect(() => {
+    let unlistenAP, unlistenAR, unlistenDP, unlistenDR;
+    const setup = async () => {
+      unlistenAP = await listen('a-pressed', () => {
+        aPressTime = Date.now();
+        aIsHeld = true;
+      });
+
+      unlistenAR = await listen('a-released', () => {
+        aReleaseDuration = Date.now() - aPressTime;
+        aIsHeld = false;
+
+        // If an Early strafe is waiting for A's first-key duration, fill it in now
+        if (pendingFirstKeyStrafe?.firstKey === "A") {
+          const id = pendingFirstKeyStrafe.id;
+          const dur = aReleaseDuration;
+          setAllStrafes(prev => {
+            const idx = prev.findIndex(s => s.id === id);
+            if (idx === -1) return prev;
+            const copy = [...prev];
+            copy[idx] = { ...copy[idx], firstKeyDurationMs: dur };
+            return copy;
+          });
+          pendingFirstKeyStrafe = null;
+        }
+
+        // A is the second key for strafes where first key was D
+        const dur = aReleaseDuration;
+        setAllStrafes(prev => {
+          const idx = prev.findIndex(s => s.secondKeyDurationMs === null && s.firstKey === "D");
+          if (idx === -1) {
+            // Strafe not yet in array (Early where releasing A ends the overlap)
+            pendingSecondKeyDuration = { key: "A", duration: dur };
+            return prev;
+          }
+          const copy = [...prev];
+          copy[idx] = { ...copy[idx], secondKeyDurationMs: dur };
+          return copy;
+        });
+      });
+
+      unlistenDP = await listen('d-pressed', () => {
+        dPressTime = Date.now();
+        dIsHeld = true;
+      });
+
+      unlistenDR = await listen('d-released', () => {
+        dReleaseDuration = Date.now() - dPressTime;
+        dIsHeld = false;
+
+        // If an Early strafe is waiting for D's first-key duration, fill it in now
+        if (pendingFirstKeyStrafe?.firstKey === "D") {
+          const id = pendingFirstKeyStrafe.id;
+          const dur = dReleaseDuration;
+          setAllStrafes(prev => {
+            const idx = prev.findIndex(s => s.id === id);
+            if (idx === -1) return prev;
+            const copy = [...prev];
+            copy[idx] = { ...copy[idx], firstKeyDurationMs: dur };
+            return copy;
+          });
+          pendingFirstKeyStrafe = null;
+        }
+
+        // D is the second key for strafes where first key was A
+        const dur = dReleaseDuration;
+        setAllStrafes(prev => {
+          const idx = prev.findIndex(s => s.secondKeyDurationMs === null && s.firstKey === "A");
+          if (idx === -1) {
+            // Strafe not yet in array (Early where releasing D ends the overlap)
+            pendingSecondKeyDuration = { key: "D", duration: dur };
+            return prev;
+          }
+          const copy = [...prev];
+          copy[idx] = { ...copy[idx], secondKeyDurationMs: dur };
+          return copy;
+        });
+      });
+    };
+    setup();
+    onCleanup(() => {
+      unlistenAP?.();
+      unlistenAR?.();
+      unlistenDP?.();
+      unlistenDR?.();
+    });
+  });
 
   // Listen for strafes from Tauri backend
   createEffect(() => {
     let unlisten;
     const setup = async () => {
       unlisten = await listen('strafe', (event) => {
-        const { strafe_type: type, duration, lmb_pressed } = event.payload;
+        const { strafe_type: type, duration, lmb_pressed, first_key } = event.payload;
         const finalDuration = type === "Early" ? -duration : duration;
-        const strafeObj = { type, duration: finalDuration, lmb_pressed };
 
         const shouldCount = !countOnlyLMB() || lmb_pressed;
+        if (!shouldCount) return;
 
-        if (shouldCount) {
-          setAllStrafes(prev => [strafeObj, ...prev]);
-          playBeep(type);
+        const fk = first_key || "A";
+        const sk = fk === "A" ? "D" : "A";
+
+        // Determine first key duration:
+        // For Perfect/Late: the first key was already released before strafe fires, so use stored duration.
+        // For Early where first key was released to end the overlap: also already in release duration.
+        // For Early where first key is STILL held (second key was tapped): mark as pending.
+        let firstKeyDurationMs = null;
+        let needsPendingFirstKey = false;
+        if (fk === "A") {
+          if (!aIsHeld) {
+            firstKeyDurationMs = aReleaseDuration;
+          } else {
+            needsPendingFirstKey = true;
+          }
+        } else {
+          if (!dIsHeld) {
+            firstKeyDurationMs = dReleaseDuration;
+          } else {
+            needsPendingFirstKey = true;
+          }
         }
+
+        // Second key duration: normally null (key still held), but for Early where the
+        // releasing key ends the overlap, the release event fires before the strafe event,
+        // so pendingSecondKeyDuration may already have the answer.
+        let secondKeyDurationMs = null;
+        if (pendingSecondKeyDuration?.key === sk) {
+          secondKeyDurationMs = pendingSecondKeyDuration.duration;
+          pendingSecondKeyDuration = null;
+        }
+
+        const id = ++strafeIdCounter;
+        const strafeObj = {
+          type,
+          duration: finalDuration,
+          lmb_pressed,
+          firstKey: fk,
+          firstKeyDurationMs,
+          secondKeyDurationMs,
+          id
+        };
+
+        setAllStrafes(prev => [strafeObj, ...prev]);
+
+        if (needsPendingFirstKey) {
+          pendingFirstKeyStrafe = { id, firstKey: fk };
+        }
+
+        playBeep(type);
       });
     };
     setup();
@@ -397,15 +554,13 @@ const playBeep = (type) => {
                 className="w-4 h-4 accent-primary cursor-pointer"
               />
               <span className="font-medium whitespace-nowrap">Require LMB</span>
-              
-              {/* Tooltip - positioned below to stay inside window */}
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
                 Only count strafes if Left Mouse Button is pressed during the strafe
               </div>
             </label>
           </div>
 
-          {/* Row 2: Sound checkboxes with speaker emoji */}
+          {/* Row 2: Sound checkboxes */}
           <div className="flex gap-4 text-xs items-center">
             <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Sound:</span>
             {Object.keys(soundEnabled()).map((t) => (
@@ -415,7 +570,7 @@ const playBeep = (type) => {
                   checked={soundEnabled()[t]}
                   onChange={(e) => setSoundEnabled((prev) => ({ ...prev, [t]: e.target.checked }))}
                 />
-                <span 
+                <span
                   className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
                   onClick={() => playBeep(t)}
                 >
@@ -436,14 +591,14 @@ const playBeep = (type) => {
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-col flex-grow p-3 gap-4 overflow-hidden">   
+      <div className="flex flex-col flex-grow p-3 gap-4 overflow-hidden">
 
         {/* Statistics + Chart Row */}
-        <div className="flex gap-4 flex-1 min-h-0">   
+        <div className="flex gap-4 flex-1 min-h-0">
 
           {/* Statistics Panel */}
-          <div className="flex flex-col w-[50%] rounded-xl border border-white/30 dark:border-white/10 p-4 
-                          bg-secondary/50 dark:bg-secondary/30 shadow-xl 
+          <div className="flex flex-col w-[50%] rounded-xl border border-white/30 dark:border-white/10 p-4
+                          bg-secondary/50 dark:bg-secondary/30 shadow-xl
                           max-h-[420px] text-[#3a3f36] dark:text-[#e8e8e8]">
             <div className="flex justify-between mb-4">
               <h2 className="select-none text-2xl font-bold">Statistics</h2>
@@ -463,8 +618,8 @@ const playBeep = (type) => {
             </p>
           </div>
 
-          {/* Chart Panel - now fills completely */}
-          <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl 
+          {/* Chart Panel */}
+          <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl
                           max-h-[420px] flex-1">
             <div className="flex-1 min-h-0 w-full">
               <MyChart
@@ -477,19 +632,22 @@ const playBeep = (type) => {
           </div>
         </div>
 
-        {/* WASD Visualizer */}
-        <div className="h-32 flex-shrink-0 flex items-center justify-center">
+        {/* WASD Visualizer — reduced height to accommodate taller history bar */}
+        <div className="h-24 flex-shrink-0 flex items-center justify-center">
           <WASD colorMap={colorMap} />
         </div>
 
-        {/* History Bar */}
-        <div className="h-[100px] flex-shrink-0 flex flex-row p-3 bg-accent/25 dark:bg-accent/20 overflow-x-auto w-full gap-3 scrollbar-hide rounded-xl">
+        {/* History Bar — increased height to show 4-line pills */}
+        <div className="h-[140px] flex-shrink-0 flex flex-row p-3 bg-accent/25 dark:bg-accent/20 overflow-x-auto w-full gap-3 scrollbar-hide rounded-xl">
           <For each={recentStrafes()}>
             {(strafe) => (
-              <StrafePill 
-                type={strafe.type} 
+              <StrafePill
+                type={strafe.type}
                 duration={strafe.duration}
                 color={colorMap[strafe.type]}
+                firstKey={strafe.firstKey}
+                firstKeyDurationMs={strafe.firstKeyDurationMs}
+                secondKeyDurationMs={strafe.secondKeyDurationMs}
               />
             )}
           </For>
