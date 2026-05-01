@@ -47,22 +47,13 @@ function fmtMs(ms) {
 }
 
 function StrafePill(props) {
-  const firstLabel = () => {
-    if (!props.firstKey) return "?";
-    return props.firstKey === "A" ? "L" : "R";
-  };
-  const secondLabel = () => {
-    if (!props.firstKey) return "?";
-    return props.firstKey === "A" ? "R" : "L";
-  };
-
   return (
     <div className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[76px] px-2 py-1 gap-0.5">
-      <p className="font-bold text-center text-sm" style={{ color: props.color }}>{props.type}</p>
-      <p className="text-center text-sm">{fmtMs(props.duration)}</p>
+      <p className="font-bold text-center text-base" style={{ color: props.color }}>{props.type}</p>
+      <p className="text-center text-base">{fmtMs(props.duration)}</p>
       <div class="w-full">
-        <p className="text-left text-sm">{firstLabel()}: {fmtMs(props.firstKeyDurationMs)}</p>
-        <p className="text-left text-sm">{secondLabel()}: {fmtMs(props.secondKeyDurationMs)}</p>
+        <p className="text-right text-base">1st: {fmtMs(props.firstKeyDurationMs)}</p>
+        <p className="text-right text-base">2nd: {fmtMs(props.secondKeyDurationMs)}</p>
       </div>
     </div>
   );
@@ -114,25 +105,14 @@ function StatsTable(props) {
         <StatRow label="Max" alls={props.alls.max} early={props.early.max} perfect={props.perfect.max} late={props.late.max} />
         <StatRow label="Std. Deviation" alls={props.alls.std_deviation} early={props.early.std_deviation} perfect={props.perfect.std_deviation} late={props.late.std_deviation} />
 
-        {/* All Strafes row — Early/Perfect/Late cells show count tooltip on hover */}
         <tr>
           <th className="px-4">All Strafes</th>
           <td className="px-3 text-center">{props.alls.samples}</td>
-          <TooltipCell
-            display={`${p(props.early.samples)}%`}
-            tooltip={`${props.early.samples} / ${props.alls.samples}`}
-          />
-          <TooltipCell
-            display={`${p(props.perfect.samples)}%`}
-            tooltip={`${props.perfect.samples} / ${props.alls.samples}`}
-          />
-          <TooltipCell
-            display={`${p(props.late.samples)}%`}
-            tooltip={`${props.late.samples} / ${props.alls.samples}`}
-          />
+          <TooltipCell display={`${p(props.early.samples)}%`}   tooltip={`${props.early.samples} / ${props.alls.samples}`} />
+          <TooltipCell display={`${p(props.perfect.samples)}%`} tooltip={`${props.perfect.samples} / ${props.alls.samples}`} />
+          <TooltipCell display={`${p(props.late.samples)}%`}    tooltip={`${props.late.samples} / ${props.alls.samples}`} />
         </tr>
 
-        {/* Strafe+LMB row — Early/Perfect/Late cells show count tooltip on hover */}
         <tr className="font-medium border-t border-dark/30 dark:border-bright/30 bg-secondary/30 dark:bg-secondary/40">
           <th className="px-4 flex items-center gap-1.5 justify-start">
             Strafe+LMB
@@ -145,18 +125,9 @@ function StatsTable(props) {
             </span>
           </th>
           <td className="px-3 text-center">{props.lmbFired.samples}</td>
-          <TooltipCell
-            display={`${pLMB(props.lmbFired.early)}%`}
-            tooltip={`${props.lmbFired.early} / ${props.lmbFired.samples}`}
-          />
-          <TooltipCell
-            display={`${pLMB(props.lmbFired.perfect)}%`}
-            tooltip={`${props.lmbFired.perfect} / ${props.lmbFired.samples}`}
-          />
-          <TooltipCell
-            display={`${pLMB(props.lmbFired.late)}%`}
-            tooltip={`${props.lmbFired.late} / ${props.lmbFired.samples}`}
-          />
+          <TooltipCell display={`${pLMB(props.lmbFired.early)}%`}   tooltip={`${props.lmbFired.early} / ${props.lmbFired.samples}`} />
+          <TooltipCell display={`${pLMB(props.lmbFired.perfect)}%`} tooltip={`${props.lmbFired.perfect} / ${props.lmbFired.samples}`} />
+          <TooltipCell display={`${pLMB(props.lmbFired.late)}%`}    tooltip={`${props.lmbFired.late} / ${props.lmbFired.samples}`} />
         </tr>
       </tbody>
     </table>
@@ -227,8 +198,8 @@ function WASD(props) {
     setupListeners();
   });
 
-  async function simulateEarly() { setAPressed(true); setTimeout(() => setDPressed(true), 500); setTimeout(() => setAPressed(false), 850); setTimeout(() => setDPressed(false), 1350); }
-  async function simulateLate() { setAPressed(true); setTimeout(() => setAPressed(false), 500); setTimeout(() => setDPressed(true), 850); setTimeout(() => setDPressed(false), 1350); }
+  async function simulateEarly()   { setAPressed(true); setTimeout(() => setDPressed(true), 500); setTimeout(() => setAPressed(false), 850); setTimeout(() => setDPressed(false), 1350); }
+  async function simulateLate()    { setAPressed(true); setTimeout(() => setAPressed(false), 500); setTimeout(() => setDPressed(true), 850); setTimeout(() => setDPressed(false), 1350); }
   async function simulatePerfect() { const delay = 40; setAPressed(true); setTimeout(() => setAPressed(false), 500); setTimeout(() => setDPressed(true), 500 + delay); setTimeout(() => setDPressed(false), 1000 + delay); }
 
   return (
@@ -458,17 +429,11 @@ function App() {
         let firstKeyDurationMs = null;
         let needsPendingFirstKey = false;
         if (fk === "A") {
-          if (!aIsHeld) {
-            firstKeyDurationMs = aReleaseDuration;
-          } else {
-            needsPendingFirstKey = true;
-          }
+          if (!aIsHeld) { firstKeyDurationMs = aReleaseDuration; }
+          else { needsPendingFirstKey = true; }
         } else {
-          if (!dIsHeld) {
-            firstKeyDurationMs = dReleaseDuration;
-          } else {
-            needsPendingFirstKey = true;
-          }
+          if (!dIsHeld) { firstKeyDurationMs = dReleaseDuration; }
+          else { needsPendingFirstKey = true; }
         }
 
         let secondKeyDurationMs = null;
@@ -506,7 +471,6 @@ function App() {
     const earlyDurations = allStrafes().filter(s => s.type === "Early").map(s => s.duration);
     const perfectDurations = allStrafes().filter(s => s.type === "Perfect").map(s => s.duration);
     const lateDurations = allStrafes().filter(s => s.type === "Late").map(s => s.duration);
-
     return {
       alls: getStats(allDurations),
       early: getStats(earlyDurations),
@@ -519,7 +483,6 @@ function App() {
     const earlyLMB = allStrafes().filter(s => s.type === "Early" && s.lmb_pressed).length;
     const perfectLMB = allStrafes().filter(s => s.type === "Perfect" && s.lmb_pressed).length;
     const lateLMB = allStrafes().filter(s => s.type === "Late" && s.lmb_pressed).length;
-
     return {
       samples: earlyLMB + perfectLMB + lateLMB,
       early: earlyLMB,
@@ -535,7 +498,6 @@ function App() {
     <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
       {/* Header */}
       <div className="flex justify-between items-center px-6 py-3 select-none">
-        {/* Left: Title */}
         <div className="flex items-center">
           <h1 className="mr-3 drop-shadow-lg py-2 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">
             PatrikZero's
@@ -547,7 +509,6 @@ function App() {
 
         {/* Center: Controls */}
         <div className="flex flex-col items-center gap-3 flex-1 max-w-md">
-          {/* Row 1: Volume + Require LMB */}
           <div className="flex items-center gap-6 justify-center">
             <div className="flex items-center gap-2 text-xs">
               <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Vol:</span>
@@ -567,7 +528,7 @@ function App() {
                   className="w-28 accent-primary"
                 />
                 {showVolumeTooltip() && (
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-50">
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-50">
                     {Math.round(volume() * 100)}%
                   </div>
                 )}
@@ -588,7 +549,6 @@ function App() {
             </label>
           </div>
 
-          {/* Row 2: Sound checkboxes */}
           <div className="flex gap-4 text-xs items-center">
             <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Sound:</span>
             {Object.keys(soundEnabled()).map((t) => (
@@ -609,7 +569,6 @@ function App() {
           </div>
         </div>
 
-        {/* Right: Theme Toggle */}
         <button
           onClick={toggleTheme}
           className="px-6 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
@@ -621,9 +580,7 @@ function App() {
       {/* Main Content */}
       <div className="flex flex-col flex-grow p-3 gap-4 overflow-hidden">
 
-        {/* Statistics + Chart Row */}
         <div className="flex gap-4 flex-1 min-h-0">
-
           {/* Statistics Panel */}
           <div className="flex flex-col w-[50%] rounded-xl border border-white/30 dark:border-white/10 p-4
                           bg-secondary/50 dark:bg-secondary/30 shadow-xl
