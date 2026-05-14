@@ -113,7 +113,7 @@ function StatsTable(props) {
         <StatRow label="Average" alls={props.alls.average} early={props.early.average} perfect={props.perfect.average} late={props.late.average} />
         <StatRow label="Min" alls={props.alls.min} early={props.early.min} perfect={props.perfect.min} late={props.late.min} />
         <StatRow label="Max" alls={props.alls.max} early={props.early.max} perfect={props.perfect.max} late={props.late.max} />
-        <StatRow label="Std. Deviation" alls={props.alls.std_deviation} early={props.early.std_deviation} perfect={props.perfect.std_deviation} late={props.late.std_deviation} />
+        <StatRow label="Std. Dev." alls={props.alls.std_deviation} early={props.early.std_deviation} perfect={props.perfect.std_deviation} late={props.late.std_deviation} />
 
         <tr>
           <th className="px-4">All Strafes</th>
@@ -598,7 +598,7 @@ function App() {
 
         <div className="flex gap-4 flex-1 min-h-0">
           {/* Statistics Panel */}
-          <div className="flex flex-col w-[50%] rounded-xl border border-white/30 dark:border-white/10 p-4
+          <div className="flex flex-col w-[52%] rounded-xl border border-white/30 dark:border-white/10 p-4
                           bg-secondary/50 dark:bg-secondary/30 shadow-xl
                           max-h-[420px] text-[#3a3f36] dark:text-[#e8e8e8]">
             <div className="flex justify-between mb-4">
@@ -620,7 +620,7 @@ function App() {
           </div>
 
           {/* Chart Panel */}
-          <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl
+          <div className="flex flex-col w-[48%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl
                           max-h-[420px] flex-1">
             <div className="flex-1 min-h-0 w-full">
               <MyChart
