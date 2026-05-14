@@ -41,19 +41,29 @@ function getOccurance(duration_array, binSize = 5) {
   return out;
 }
 
+// Used for key hold durations — always unsigned
 function fmtMs(ms) {
   if (ms === null || ms === undefined) return "...";
   return Math.round(Math.abs(ms)) + "ms";
 }
 
+// Used for between-key duration in the history pill — signed by strafe type
+function fmtStrafeDuration(ms, type) {
+  if (ms === null || ms === undefined) return "...";
+  const abs = Math.round(Math.abs(ms));
+  if (type === "Early") return `-${abs}ms`;
+  if (type === "Late")  return `+${abs}ms`;
+  return `${abs}ms`;
+}
+
 function StrafePill(props) {
   return (
     <div className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[76px] px-2 py-1 gap-0.5">
-      <p className="font-bold text-center text-base" style={{ color: props.color }}>{props.type}</p>
-      <p className="text-center text-base">{fmtMs(props.duration)}</p>
+      <p className="font-bold text-center text-sm" style={{ color: props.color }}>{props.type}</p>
+      <p className="text-center text-sm">{fmtStrafeDuration(props.duration, props.type)}</p>
       <div class="w-full">
-        <p className="text-right text-base">1st: {fmtMs(props.firstKeyDurationMs)}</p>
-        <p className="text-right text-base">2nd: {fmtMs(props.secondKeyDurationMs)}</p>
+        <p className="text-right text-sm">1st: {fmtMs(props.firstKeyDurationMs)}</p>
+        <p className="text-right text-sm">2nd: {fmtMs(props.secondKeyDurationMs)}</p>
       </div>
     </div>
   );
@@ -64,9 +74,9 @@ function StatRow(props) {
     <tr>
       <th className="px-4">{props.label}</th>
       <td className="px-3 text-center">{draw_time(props.alls)}</td>
-      <td className="px-3 text-center">{draw_time(props.early)}</td>
+      <td className="px-3 text-center">-{draw_time(props.early)}</td>
       <td className="px-3 text-center">{draw_time(props.perfect)}</td>
-      <td className="px-3 text-center">{draw_time(props.late)}</td>
+      <td className="px-3 text-center">+{draw_time(props.late)}</td>
     </tr>
   );
 }
@@ -99,10 +109,10 @@ function StatsTable(props) {
           <th className="w-20 px-3 text-[#34d27a]">Perfect</th>
           <th className="w-20 px-3 text-[#f7b46f]">Late</th>
         </tr>
-        <StatRow label="Median" alls={props.alls.median} early={props.early.median} perfect={props.perfect.median} late={props.late.median} />
-        <StatRow label="Average" alls={props.alls.average} early={props.early.average} perfect={props.perfect.average} late={props.late.average} />
-        <StatRow label="Min" alls={props.alls.min} early={props.early.min} perfect={props.perfect.min} late={props.late.min} />
-        <StatRow label="Max" alls={props.alls.max} early={props.early.max} perfect={props.perfect.max} late={props.late.max} />
+        <StatRow label="Median"       alls={props.alls.median}        early={props.early.median}        perfect={props.perfect.median}        late={props.late.median} />
+        <StatRow label="Average"      alls={props.alls.average}       early={props.early.average}       perfect={props.perfect.average}       late={props.late.average} />
+        <StatRow label="Min"          alls={props.alls.min}           early={props.early.min}           perfect={props.perfect.min}           late={props.late.min} />
+        <StatRow label="Max"          alls={props.alls.max}           early={props.early.max}           perfect={props.perfect.max}           late={props.late.max} />
         <StatRow label="Std. Deviation" alls={props.alls.std_deviation} early={props.early.std_deviation} perfect={props.perfect.std_deviation} late={props.late.std_deviation} />
 
         <tr>
@@ -118,7 +128,7 @@ function StatsTable(props) {
             Strafe+LMB
             <span className="relative group cursor-help">
               <span className="text-xs text-dark/60 dark:text-bright/60 select-none">ⓘ</span>
-              <div className="absolute hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-2 rounded shadow-lg 
+              <div className="absolute hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-2 rounded shadow-lg
                               left-full ml-2 top-1/2 -translate-y-1/2 w-72 z-50 pointer-events-none">
                 Counts only strafes where Left Mouse Button (LMB) was pressed during the strafe
               </div>
@@ -136,14 +146,20 @@ function StatsTable(props) {
 
 const MyChart = (props) => {
   const binSize = 5;
-  const labels = createMemo(() => Array.from({ length: 61 }, (_, i) => (i - 20) * binSize));
+  const labels = createMemo(() =>
+    Array.from({ length: 61 }, (_, i) => {
+      const val = (i - 20) * binSize;
+      if (val > 0) return `+${val}`;
+      return `${val}`;
+    })
+  );
 
   const [chartData, setChartData] = createSignal({
     labels: labels(),
     datasets: [
-      { label: 'Early', data: [], borderRadius: 5, backgroundColor: "#f16a5c" },
+      { label: 'Early',   data: [], borderRadius: 5, backgroundColor: "#f16a5c" },
       { label: 'Perfect', data: [], borderRadius: 5, backgroundColor: "#34d27a" },
-      { label: 'Late', data: [], borderRadius: 5, backgroundColor: "#f7b46f" },
+      { label: 'Late',    data: [], borderRadius: 5, backgroundColor: "#f7b46f" },
     ],
   });
 
@@ -153,9 +169,9 @@ const MyChart = (props) => {
     setChartData({
       labels: labels(),
       datasets: [
-        { label: 'Early', data: getOccurance(props.earlyStrafes, binSize), borderRadius: 5, backgroundColor: "#f16a5c" },
+        { label: 'Early',   data: getOccurance(props.earlyStrafes,   binSize), borderRadius: 5, backgroundColor: "#f16a5c" },
         { label: 'Perfect', data: getOccurance(props.perfectStrafes, binSize), borderRadius: 5, backgroundColor: "#34d27a" },
-        { label: 'Late', data: getOccurance(props.lateStrafes, binSize), borderRadius: 5, backgroundColor: "#f7b46f" },
+        { label: 'Late',    data: getOccurance(props.lateStrafes,    binSize), borderRadius: 5, backgroundColor: "#f7b46f" },
       ],
     });
   });
@@ -184,14 +200,14 @@ function WASD(props) {
   createEffect(() => {
     let unlistenA, unlistenD, unlistenReleaseA, unlistenReleaseD;
     const setupListeners = async () => {
-      unlistenA = await listen('a-pressed', () => setAPressed(true));
-      unlistenD = await listen('d-pressed', () => setDPressed(true));
+      unlistenA      = await listen('a-pressed',  () => setAPressed(true));
+      unlistenD      = await listen('d-pressed',  () => setDPressed(true));
       unlistenReleaseA = await listen('a-released', () => setAPressed(false));
       unlistenReleaseD = await listen('d-released', () => setDPressed(false));
     };
     onCleanup(() => {
-      if (typeof unlistenA === "function") unlistenA();
-      if (typeof unlistenD === "function") unlistenD();
+      if (typeof unlistenA      === "function") unlistenA();
+      if (typeof unlistenD      === "function") unlistenD();
       if (typeof unlistenReleaseA === "function") unlistenReleaseA();
       if (typeof unlistenReleaseD === "function") unlistenReleaseD();
     });
@@ -234,9 +250,9 @@ function App() {
   let volumeTooltipTimeout;
 
   const colorMap = {
-    Early: "#f16a5c",
+    Early:   "#f16a5c",
     Perfect: "#34d27a",
-    Late: "#f7b46f"
+    Late:    "#f7b46f"
   };
 
   let aPressTime = 0;
@@ -467,32 +483,32 @@ function App() {
   });
 
   const allStats = createMemo(() => {
-    const allDurations = allStrafes().map(s => s.duration);
-    const earlyDurations = allStrafes().filter(s => s.type === "Early").map(s => s.duration);
+    const allDurations     = allStrafes().map(s => s.duration);
+    const earlyDurations   = allStrafes().filter(s => s.type === "Early").map(s => s.duration);
     const perfectDurations = allStrafes().filter(s => s.type === "Perfect").map(s => s.duration);
-    const lateDurations = allStrafes().filter(s => s.type === "Late").map(s => s.duration);
+    const lateDurations    = allStrafes().filter(s => s.type === "Late").map(s => s.duration);
     return {
-      alls: getStats(allDurations),
-      early: getStats(earlyDurations),
+      alls:    getStats(allDurations),
+      early:   getStats(earlyDurations),
       perfect: getStats(perfectDurations),
-      late: getStats(lateDurations)
+      late:    getStats(lateDurations)
     };
   });
 
   const lmbFired = createMemo(() => {
-    const earlyLMB = allStrafes().filter(s => s.type === "Early" && s.lmb_pressed).length;
+    const earlyLMB   = allStrafes().filter(s => s.type === "Early"   && s.lmb_pressed).length;
     const perfectLMB = allStrafes().filter(s => s.type === "Perfect" && s.lmb_pressed).length;
-    const lateLMB = allStrafes().filter(s => s.type === "Late" && s.lmb_pressed).length;
+    const lateLMB    = allStrafes().filter(s => s.type === "Late"    && s.lmb_pressed).length;
     return {
       samples: earlyLMB + perfectLMB + lateLMB,
-      early: earlyLMB,
+      early:   earlyLMB,
       perfect: perfectLMB,
-      late: lateLMB
+      late:    lateLMB
     };
   });
 
   const recentStrafes = createMemo(() => allStrafes().slice(0, 100));
-  const perfectCount = createMemo(() => allStrafes().filter(s => s.type === 'Perfect').length);
+  const perfectCount  = createMemo(() => allStrafes().filter(s => s.type === 'Perfect').length);
 
   return (
     <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
