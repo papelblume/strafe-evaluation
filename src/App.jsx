@@ -104,10 +104,10 @@ function StatsTable(props) {
       <tbody className="text-center">
         <tr>
           <th className="px-4"></th>
-          <th className="w-20 px-3">All</th>
-          <th className="w-20 px-3 text-[#f16a5c]">Early</th>
-          <th className="w-20 px-3 text-[#34d27a]">Perfect</th>
-          <th className="w-20 px-3 text-[#f7b46f]">Late</th>
+          <th className="w-auto px-3">All</th>
+          <th className="w-auto px-3 text-[#f16a5c]">Early</th>
+          <th className="w-auto px-3 text-[#34d27a]">Perfect</th>
+          <th className="w-auto px-3 text-[#f7b46f]">Late</th>
         </tr>
         <StatRow label="Median" alls={props.alls.median} early={props.early.median} perfect={props.perfect.median} late={props.late.median} />
         <StatRow label="Average" alls={props.alls.average} early={props.early.average} perfect={props.perfect.average} late={props.late.average} />
@@ -598,14 +598,14 @@ function App() {
 
         <div className="flex gap-4 flex-1 min-h-0">
           {/* Statistics Panel */}
-          <div className="flex flex-col w-[58%] rounded-xl border border-white/30 dark:border-white/10 p-4
+          <div className="flex flex-col w-[50%] rounded-xl border border-white/30 dark:border-white/10 p-4
                           bg-secondary/50 dark:bg-secondary/30 shadow-xl
                           max-h-[420px] text-[#3a3f36] dark:text-[#e8e8e8]">
             <div className="flex justify-between mb-4">
               <h2 className="select-none text-2xl font-bold">Statistics</h2>
               <button onClick={resetStrafes} className="text-bright select-none shadow-md px-5 py-1 rounded-md bg-primary hover:scale-110 active:scale-95 transition-all">Reset</button>
             </div>
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-hidden">
               <StatsTable
                 alls={allStats().alls}
                 early={allStats().early}
@@ -620,7 +620,7 @@ function App() {
           </div>
 
           {/* Chart Panel */}
-          <div className="flex flex-col w-[42%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl
+          <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl
                           max-h-[420px] flex-1">
             <div className="flex-1 min-h-0 w-full">
               <MyChart
