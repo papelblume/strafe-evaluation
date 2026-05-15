@@ -512,8 +512,8 @@ function App() {
 
   return (
     <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
-      {/* Header */}
-      <div className="flex justify-between items-center px-6 py-3 select-none">
+      {/* Header — change items-center to items-start */}
+      <div className="flex justify-between items-start px-6 py-3 select-none">
         <div className="flex items-center">
           <h1 className="mr-3 drop-shadow-lg py-2 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">
             PatrikZero's
@@ -587,7 +587,7 @@ function App() {
 
         <button
           onClick={toggleTheme}
-          className="px-6 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
+          className="self-end px-4 py-1 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
         >
           {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
         </button>
