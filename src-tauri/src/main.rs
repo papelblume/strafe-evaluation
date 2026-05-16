@@ -20,6 +20,7 @@ const PERFECT_MAX_MS: u128 = 80;
 const LATE_MAX_MS: u128 = 200;
 const SPAM_COOLDOWN_MS: u128 = 60;
 const POST_STRAFE_LMB_WINDOW_MS: u128 = 100;
+const MIN_FIRST_KEY_MS: u128 = 200;
 
 fn main() {
     tauri::Builder::default()
@@ -47,10 +48,17 @@ fn main() {
 
                 let mut early_fired: bool = false;
 
-                // Track when each key was pressed to determine overlap first key
+                // Track when each key was pressed
                 let mut left_press_instant: Option<Instant> = None;
                 let mut right_press_instant: Option<Instant> = None;
+
+                // How long each key was held before release (for understrafe first-key check)
+                let mut left_hold_ms: Option<u128> = None;
+                let mut right_hold_ms: Option<u128> = None;
+
+                // For Early: how long the first key was held before the overlap started
                 let mut overlap_first_key: Option<String> = None;
+                let mut overlap_first_key_hold_ms: Option<u128> = None;
 
                 let is_azerty = is_azerty_layout();
 
@@ -85,6 +93,7 @@ fn main() {
                     // D released
                     if right_pressed && !DKey.is_pressed() && !RightKey.is_pressed() {
                         right_pressed = false;
+                        right_hold_ms = right_press_instant.map(|t| t.elapsed().as_millis());
                         let _ = handle.emit_all("d-released", ());
                         right_released_time = Some(SystemTime::now());
                     }
@@ -96,6 +105,7 @@ fn main() {
                         && !LeftKey.is_pressed()
                     {
                         left_pressed = false;
+                        left_hold_ms = left_press_instant.map(|t| t.elapsed().as_millis());
                         let _ = handle.emit_all("a-released", ());
                         left_released_time = Some(SystemTime::now());
                     }
@@ -112,27 +122,35 @@ fn main() {
                         if !w_pressed && !s_pressed && !shift_pressed && !ctrl_pressed {
                             if let Some(x) = right_released_time {
                                 if let Ok(elapsed) = x.elapsed() {
-                                    if let Some((strafe_type, duration)) = eval_understrafe(
-                                        elapsed,
-                                        &mut right_released_time,
-                                        &mut both_pressed_time,
-                                        &mut lmb_during_strafe,
-                                        &mut last_strafe_time,
-                                    ) {
-                                        // A is the counter key, so D was the first key
-                                        if strafe_type == "Perfect" {
-                                            pending_strafe = Some((strafe_type, duration, "D".to_string()));
-                                            pending_strafe_time = Some(Instant::now());
-                                        } else {
-                                            // Late — emit immediately
-                                            let _ = handle.emit_all("strafe", Payload {
-                                                strafe_type,
-                                                duration,
-                                                lmb_pressed: lmb_during_strafe,
-                                                first_key: "D".to_string(),
-                                            });
-                                            lmb_during_strafe = false;
+                                    // First key was D — only proceed if D was held long enough
+                                    let first_key_ok = right_hold_ms
+                                        .map(|ms| ms >= MIN_FIRST_KEY_MS)
+                                        .unwrap_or(false);
+                                    if first_key_ok {
+                                        if let Some((strafe_type, duration)) = eval_understrafe(
+                                            elapsed,
+                                            &mut right_released_time,
+                                            &mut both_pressed_time,
+                                            &mut lmb_during_strafe,
+                                            &mut last_strafe_time,
+                                        ) {
+                                            if strafe_type == "Perfect" {
+                                                pending_strafe = Some((strafe_type, duration, "D".to_string()));
+                                                pending_strafe_time = Some(Instant::now());
+                                            } else {
+                                                // Late — emit immediately
+                                                let _ = handle.emit_all("strafe", Payload {
+                                                    strafe_type,
+                                                    duration,
+                                                    lmb_pressed: lmb_during_strafe,
+                                                    first_key: "D".to_string(),
+                                                });
+                                                lmb_during_strafe = false;
+                                            }
                                         }
+                                    } else {
+                                        // First key too short — reset released time to avoid stale state
+                                        right_released_time = None;
                                     }
                                 }
                             }
@@ -149,39 +167,45 @@ fn main() {
                         if !w_pressed && !s_pressed && !shift_pressed && !ctrl_pressed {
                             if let Some(x) = left_released_time {
                                 if let Ok(elapsed) = x.elapsed() {
-                                    if let Some((strafe_type, duration)) = eval_understrafe(
-                                        elapsed,
-                                        &mut left_released_time,
-                                        &mut both_pressed_time,
-                                        &mut lmb_during_strafe,
-                                        &mut last_strafe_time,
-                                    ) {
-                                        // D is the counter key, so A was the first key
-                                        if strafe_type == "Perfect" {
-                                            pending_strafe = Some((strafe_type, duration, "A".to_string()));
-                                            pending_strafe_time = Some(Instant::now());
-                                        } else {
-                                            // Late — emit immediately
-                                            let _ = handle.emit_all("strafe", Payload {
-                                                strafe_type,
-                                                duration,
-                                                lmb_pressed: lmb_during_strafe,
-                                                first_key: "A".to_string(),
-                                            });
-                                            lmb_during_strafe = false;
+                                    // First key was A — only proceed if A was held long enough
+                                    let first_key_ok = left_hold_ms
+                                        .map(|ms| ms >= MIN_FIRST_KEY_MS)
+                                        .unwrap_or(false);
+                                    if first_key_ok {
+                                        if let Some((strafe_type, duration)) = eval_understrafe(
+                                            elapsed,
+                                            &mut left_released_time,
+                                            &mut both_pressed_time,
+                                            &mut lmb_during_strafe,
+                                            &mut last_strafe_time,
+                                        ) {
+                                            if strafe_type == "Perfect" {
+                                                pending_strafe = Some((strafe_type, duration, "A".to_string()));
+                                                pending_strafe_time = Some(Instant::now());
+                                            } else {
+                                                // Late — emit immediately
+                                                let _ = handle.emit_all("strafe", Payload {
+                                                    strafe_type,
+                                                    duration,
+                                                    lmb_pressed: lmb_during_strafe,
+                                                    first_key: "A".to_string(),
+                                                });
+                                                lmb_during_strafe = false;
+                                            }
                                         }
+                                    } else {
+                                        // First key too short — reset released time to avoid stale state
+                                        left_released_time = None;
                                     }
                                 }
                             }
                         }
                     }
 
-                    // Overlap (Early) detection
+                    // Overlap (Early) detection — both keys now held simultaneously
                     if left_pressed && right_pressed && both_pressed_time.is_none() {
-                        both_pressed_time = Some(SystemTime::now());
-                        lmb_during_strafe = LeftButton.is_pressed();
                         // Determine which key was pressed first by comparing press instants
-                        overlap_first_key = match (left_press_instant, right_press_instant) {
+                        let fk = match (left_press_instant, right_press_instant) {
                             (Some(lp), Some(rp)) => {
                                 if lp < rp { Some("A".to_string()) } else { Some("D".to_string()) }
                             }
@@ -189,6 +213,17 @@ fn main() {
                             (None, Some(_)) => Some("D".to_string()),
                             _ => Some("A".to_string()),
                         };
+
+                        // Compute how long the first key was held before overlap started
+                        overlap_first_key_hold_ms = match fk {
+                            Some(ref k) if k == "A" => left_press_instant.map(|t| t.elapsed().as_millis()),
+                            Some(ref k) if k == "D" => right_press_instant.map(|t| t.elapsed().as_millis()),
+                            _ => None,
+                        };
+
+                        overlap_first_key = fk;
+                        both_pressed_time = Some(SystemTime::now());
+                        lmb_during_strafe = LeftButton.is_pressed();
                     }
 
                     if (!left_pressed || !right_pressed) && both_pressed_time.is_some() {
@@ -197,37 +232,52 @@ fn main() {
                                 // Only count strafe if W, S, Shift, and Ctrl are NOT pressed
                                 if !w_pressed && !s_pressed && !shift_pressed && !ctrl_pressed {
                                     if !early_fired {
-                                        // Take first_key before eval (eval resets both_pressed_time)
-                                        let first_key = overlap_first_key.take().unwrap_or_else(|| "A".to_string());
-                                        if let Some((strafe_type, duration)) = eval_overstrafe(
-                                            elapsed,
-                                            &mut both_pressed_time,
-                                            &mut lmb_during_strafe,
-                                            &mut last_strafe_time,
-                                        ) {
-                                            // Early — emit immediately
-                                            let _ = handle.emit_all("strafe", Payload {
-                                                strafe_type,
-                                                duration,
-                                                lmb_pressed: lmb_during_strafe,
-                                                first_key,
-                                            });
-                                            lmb_during_strafe = false;
-                                            early_fired = true;
+                                        let first_key_ok = overlap_first_key_hold_ms
+                                            .map(|ms| ms >= MIN_FIRST_KEY_MS)
+                                            .unwrap_or(false);
+
+                                        if first_key_ok {
+                                            let first_key = overlap_first_key.take().unwrap_or_else(|| "A".to_string());
+                                            if let Some((strafe_type, duration)) = eval_overstrafe(
+                                                elapsed,
+                                                &mut both_pressed_time,
+                                                &mut lmb_during_strafe,
+                                                &mut last_strafe_time,
+                                            ) {
+                                                // Early — emit immediately
+                                                let _ = handle.emit_all("strafe", Payload {
+                                                    strafe_type,
+                                                    duration,
+                                                    lmb_pressed: lmb_during_strafe,
+                                                    first_key,
+                                                });
+                                                lmb_during_strafe = false;
+                                                early_fired = true;
+                                            } else {
+                                                // Overlap exceeded LATE_MAX_MS — reset without emitting
+                                                both_pressed_time = None;
+                                                overlap_first_key = None;
+                                                overlap_first_key_hold_ms = None;
+                                                lmb_during_strafe = false;
+                                            }
                                         } else {
-                                            // Overlap exceeded LATE_MAX_MS — reset without emitting
+                                            // First key held too briefly — discard without emitting
                                             both_pressed_time = None;
+                                            overlap_first_key = None;
+                                            overlap_first_key_hold_ms = None;
                                             lmb_during_strafe = false;
                                         }
                                     } else {
                                         // early_fired is true — skip this overlap, reset state only
                                         both_pressed_time = None;
                                         overlap_first_key = None;
+                                        overlap_first_key_hold_ms = None;
                                         lmb_during_strafe = false;
                                     }
                                 } else {
                                     both_pressed_time = None;
                                     overlap_first_key = None;
+                                    overlap_first_key_hold_ms = None;
                                     lmb_during_strafe = false;
                                 }
                             }
