@@ -6,6 +6,7 @@ import { listen } from '@tauri-apps/api/event';
 
 function draw_time(time) {
   if (time < 0) return "-" + Math.abs(time).toFixed(0) + " ms";
+  if (time > 0) return "+" + time.toFixed(0) + " ms";
   return time.toFixed(0) + " ms";
 }
 
@@ -74,9 +75,9 @@ function StatRow(props) {
     <tr>
       <th className="px-4">{props.label}</th>
       <td className="px-3 text-center">{draw_time(props.alls)}</td>
-      <td className="px-3 text-center">-{draw_time(props.early)}</td>
+      <td className="px-3 text-center">{draw_time(-Math.abs(props.early))}</td>
       <td className="px-3 text-center">{draw_time(props.perfect)}</td>
-      <td className="px-3 text-center">+{draw_time(props.late)}</td>
+      <td className="px-3 text-center">{draw_time(+Math.abs(props.late))}</td>
     </tr>
   );
 }
@@ -104,16 +105,16 @@ function StatsTable(props) {
       <tbody className="text-center">
         <tr>
           <th className="px-4"></th>
-          <th className="w-auto px-3">All</th>
-          <th className="w-auto px-3 text-[#f16a5c]">Early</th>
-          <th className="w-auto px-3 text-[#34d27a]">Perfect</th>
-          <th className="w-auto px-3 text-[#f7b46f]">Late</th>
+          <th className="w-20 px-3">All</th>
+          <th className="w-20 px-3 text-[#f16a5c]">Early</th>
+          <th className="w-20 px-3 text-[#34d27a]">Perfect</th>
+          <th className="w-20 px-3 text-[#f7b46f]">Late</th>
         </tr>
-        <StatRow label="Median" alls={props.alls.median} early={props.early.median} perfect={props.perfect.median} late={props.late.median} />
-        <StatRow label="Average" alls={props.alls.average} early={props.early.average} perfect={props.perfect.average} late={props.late.average} />
-        <StatRow label="Min" alls={props.alls.min} early={props.early.min} perfect={props.perfect.min} late={props.late.min} />
-        <StatRow label="Max" alls={props.alls.max} early={props.early.max} perfect={props.perfect.max} late={props.late.max} />
-        <StatRow label="Std. Deviation" alls={props.alls.std_deviation} early={props.early.std_deviation} perfect={props.perfect.std_deviation} late={props.late.std_deviation} />
+        <StatRow label="Median"         alls={props.alls.median}         early={props.early.median}         perfect={props.perfect.median}         late={props.late.median} />
+        <StatRow label="Average"        alls={props.alls.average}        early={props.early.average}        perfect={props.perfect.average}        late={props.late.average} />
+        <StatRow label="Min"            alls={props.alls.min}            early={props.early.min}            perfect={props.perfect.min}            late={props.late.min} />
+        <StatRow label="Max"            alls={props.alls.max}            early={props.early.max}            perfect={props.perfect.max}            late={props.late.max} />
+        <StatRow label="Std. Dev."      alls={props.alls.std_deviation}  early={props.early.std_deviation}  perfect={props.perfect.std_deviation}   late={props.late.std_deviation} />
 
         <tr>
           <th className="px-4">All Strafes</th>
@@ -200,14 +201,14 @@ function WASD(props) {
   createEffect(() => {
     let unlistenA, unlistenD, unlistenReleaseA, unlistenReleaseD;
     const setupListeners = async () => {
-      unlistenA      = await listen('a-pressed',  () => setAPressed(true));
-      unlistenD      = await listen('d-pressed',  () => setDPressed(true));
-      unlistenReleaseA = await listen('a-released', () => setAPressed(false));
-      unlistenReleaseD = await listen('d-released', () => setDPressed(false));
+      unlistenA        = await listen('a-pressed',   () => setAPressed(true));
+      unlistenD        = await listen('d-pressed',   () => setDPressed(true));
+      unlistenReleaseA = await listen('a-released',  () => setAPressed(false));
+      unlistenReleaseD = await listen('d-released',  () => setDPressed(false));
     };
     onCleanup(() => {
-      if (typeof unlistenA      === "function") unlistenA();
-      if (typeof unlistenD      === "function") unlistenD();
+      if (typeof unlistenA        === "function") unlistenA();
+      if (typeof unlistenD        === "function") unlistenD();
       if (typeof unlistenReleaseA === "function") unlistenReleaseA();
       if (typeof unlistenReleaseD === "function") unlistenReleaseD();
     });
@@ -242,12 +243,15 @@ function WASD(props) {
 
 function App() {
   const [allStrafes, setAllStrafes] = createSignal([]);
-  const [countOnlyLMB, setCountOnlyLMB] = createSignal(false);
+  const [showLmbChart, setShowLmbChart] = createSignal(false);
   const [isDark, setIsDark] = createSignal(false);
   const [soundEnabled, setSoundEnabled] = createSignal({ Early: true, Perfect: true, Late: true });
   const [volume, setVolume] = createSignal(0.6);
   const [showVolumeTooltip, setShowVolumeTooltip] = createSignal(false);
   let volumeTooltipTimeout;
+
+  // Epoch ms of app launch or last reset
+  let sessionStartTime = Date.now();
 
   const colorMap = {
     Early:   "#f16a5c",
@@ -269,12 +273,13 @@ function App() {
 
   onMount(() => {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    sessionStartTime = Date.now();
 
     const savedVolume = localStorage.getItem('volume');
     if (savedVolume) setVolume(parseFloat(savedVolume));
 
-    const savedRequireLMB = localStorage.getItem('requireLMB');
-    if (savedRequireLMB !== null) setCountOnlyLMB(savedRequireLMB === 'true');
+    const savedShowLmbChart = localStorage.getItem('showLmbChart');
+    if (savedShowLmbChart !== null) setShowLmbChart(savedShowLmbChart === 'true');
 
     const savedSound = localStorage.getItem('soundEnabled');
     if (savedSound) {
@@ -287,7 +292,7 @@ function App() {
   });
 
   createEffect(() => { localStorage.setItem('volume', volume().toString()); });
-  createEffect(() => { localStorage.setItem('requireLMB', countOnlyLMB().toString()); });
+  createEffect(() => { localStorage.setItem('showLmbChart', showLmbChart().toString()); });
   createEffect(() => { localStorage.setItem('soundEnabled', JSON.stringify(soundEnabled())); });
 
   createEffect(() => {
@@ -345,6 +350,7 @@ function App() {
     pendingFirstKeyStrafe = null;
     pendingSecondKeyDuration = null;
     strafeIdCounter = 0;
+    sessionStartTime = Date.now();
   }
 
   createEffect(() => {
@@ -436,9 +442,6 @@ function App() {
         const { strafe_type: type, duration, lmb_pressed, first_key } = event.payload;
         const finalDuration = type === "Early" ? -duration : duration;
 
-        const shouldCount = !countOnlyLMB() || lmb_pressed;
-        if (!shouldCount) return;
-
         const fk = first_key || "A";
         const sk = fk === "A" ? "D" : "A";
 
@@ -466,7 +469,8 @@ function App() {
           firstKey: fk,
           firstKeyDurationMs,
           secondKeyDurationMs,
-          id
+          id,
+          timestamp: Date.now(),
         };
 
         setAllStrafes(prev => [strafeObj, ...prev]);
@@ -507,12 +511,24 @@ function App() {
     };
   });
 
+  // Chart data arrays — switch between all strafes and LMB-only based on showLmbChart
+  const chartStrafes = createMemo(() => {
+    const src = showLmbChart()
+      ? allStrafes().filter(s => s.lmb_pressed)
+      : allStrafes();
+    return {
+      early:   src.filter(s => s.type === "Early").map(s => s.duration),
+      perfect: src.filter(s => s.type === "Perfect").map(s => s.duration),
+      late:    src.filter(s => s.type === "Late").map(s => s.duration),
+    };
+  });
+
   const recentStrafes = createMemo(() => allStrafes().slice(0, 100));
   const perfectCount  = createMemo(() => allStrafes().filter(s => s.type === 'Perfect').length);
 
   return (
     <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
-      {/* Header — change items-center to items-start */}
+      {/* Header */}
       <div className="flex justify-between items-start px-6 py-3 select-none">
         <div className="flex items-center">
           <h1 className="mr-3 drop-shadow-lg py-2 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">
@@ -551,16 +567,17 @@ function App() {
               </div>
             </div>
 
+            {/* Chart toggle: show LMB-only data in chart */}
             <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
               <input
                 type="checkbox"
-                checked={countOnlyLMB()}
-                onChange={(e) => setCountOnlyLMB(e.target.checked)}
+                checked={showLmbChart()}
+                onChange={(e) => setShowLmbChart(e.target.checked)}
                 className="w-4 h-4 accent-primary cursor-pointer"
               />
-              <span className="font-medium whitespace-nowrap">Require LMB</span>
+              <span className="font-medium whitespace-nowrap">Chart: Strafe+LMB</span>
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
-                Only count strafes if Left Mouse Button is pressed during the strafe
+                Show only strafes where LMB was pressed in the chart
               </div>
             </label>
           </div>
@@ -622,12 +639,15 @@ function App() {
           {/* Chart Panel */}
           <div className="flex flex-col w-[50%] bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 shadow-xl
                           max-h-[420px] flex-1">
+            <p className="text-center text-sm font-semibold text-dark/70 dark:text-bright/70 mb-1 select-none">
+              {showLmbChart() ? "Strafe+LMB" : "All Strafes"}
+            </p>
             <div className="flex-1 min-h-0 w-full">
               <MyChart
                 isDark={isDark()}
-                earlyStrafes={allStrafes().filter(s => s.type === "Early").map(s => s.duration)}
-                perfectStrafes={allStrafes().filter(s => s.type === "Perfect").map(s => s.duration)}
-                lateStrafes={allStrafes().filter(s => s.type === "Late").map(s => s.duration)}
+                earlyStrafes={chartStrafes().early}
+                perfectStrafes={chartStrafes().perfect}
+                lateStrafes={chartStrafes().late}
               />
             </div>
           </div>
