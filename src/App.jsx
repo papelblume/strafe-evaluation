@@ -600,20 +600,6 @@ function App() {
               </div>
             </div>
 
-            {/* Chart dataset toggle */}
-            <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
-              <input
-                type="checkbox" checked={showLmbChart()}
-                onChange={(e) => setShowLmbChart(e.target.checked)}
-                className="w-4 h-4 accent-primary cursor-pointer"
-              />
-              <span className="font-medium whitespace-nowrap">Chart: Strafe+LMB</span>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
-                Show only strafes where LMB was pressed in the chart
-              </div>
-            </label>
-          </div>
-
           {/* Sound checkboxes — left edge aligns with Vol: label */}
           <div className="flex gap-4 text-xs items-center">
             <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Sound:</span>
@@ -636,6 +622,19 @@ function App() {
 
         {/* Right: Chart:Timeline (top) + Bright Mode button (bottom) — both right-aligned */}
         <div className="flex flex-col items-end gap-2">
+            {/* Chart dataset toggle */}
+            <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
+              <input
+                type="checkbox" checked={showLmbChart()}
+                onChange={(e) => setShowLmbChart(e.target.checked)}
+                className="w-4 h-4 accent-primary cursor-pointer"
+              />
+              <span className="font-medium whitespace-nowrap">Chart: Strafe+LMB</span>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
+                Show only strafes where LMB was pressed in the chart
+              </div>
+            </label>
+          </div>
           <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
             <input
               type="checkbox" checked={showLineChart()}
