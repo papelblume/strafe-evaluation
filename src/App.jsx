@@ -72,9 +72,9 @@ function StatRow(props) {
     <tr>
       <th className="px-4">{props.label}</th>
       <td className="px-3 text-center">{draw_time(props.alls)}</td>
-      <td className="px-3 text-center">{draw_time(-Math.abs(props.early))}</td>
+      <td className="px-3 text-center">-{draw_time(props.early)}</td>
       <td className="px-3 text-center">{draw_time(props.perfect)}</td>
-      <td className="px-3 text-center">{draw_time(+Math.abs(props.late))}</td>
+      <td className="px-3 text-center">+{draw_time(props.late)}</td>
     </tr>
   );
 }
@@ -566,11 +566,11 @@ function App() {
 
         {/* Left: Title */}
         <div className="flex items-center">
-          <h1 className="mr-3 drop-shadow-lg py-2 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">
+          {/* <h1 className="mr-3 drop-shadow-lg py-2 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">
             CS2
-          </h1>
+          </h1>*/}
           <h1 className="py-2 text-4xl font-bold text-center pointer-events-none">
-            Strafe Trainer
+            CS2 Counter-Strafe Trainer
           </h1>
         </div>
 
