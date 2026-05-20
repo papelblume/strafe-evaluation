@@ -561,10 +561,9 @@ function App() {
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
+        <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
       {/* Header */}
       <div className="flex justify-between items-start px-6 py-3 select-none">
-
         {/* Left: Title */}
         <div className="flex items-center">
           <h1 className="mr-3 drop-shadow-lg py-2 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">
@@ -574,10 +573,9 @@ function App() {
             Strafe Evaluation
           </h1>
         </div>
-
         {/* Center: Vol + Chart:LMB (top row), Sound (bottom row) — items-start so both rows share the same left edge */}
         <div className="flex flex-col items-start gap-3 flex-1 px-8">
-          <div className="flex items-center gap-4">   {/* Reduced from gap-6 */}
+          <div className="flex items-center gap-4"> {/* Reduced from gap-6 */}
             {/* Volume slider */}
             <div className="flex items-center gap-2 text-xs flex-shrink-0">
               <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Volume:</span>
@@ -599,7 +597,7 @@ function App() {
                 )}
               </div>
             </div>
-
+          </div>
           {/* Sound checkboxes — left edge aligns with Vol: label */}
           <div className="flex gap-4 text-xs items-center">
             <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Sound:</span>
@@ -619,22 +617,20 @@ function App() {
             ))}
           </div>
         </div>
-
         {/* Right: Chart:Timeline (top) + Bright Mode button (bottom) — both right-aligned */}
         <div className="flex flex-col items-end gap-2">
-            {/* Chart dataset toggle */}
-            <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
-              <input
-                type="checkbox" checked={showLmbChart()}
-                onChange={(e) => setShowLmbChart(e.target.checked)}
-                className="w-4 h-4 accent-primary cursor-pointer"
-              />
-              <span className="font-medium whitespace-nowrap">Chart: Strafe+LMB</span>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
-                Show only strafes where LMB was pressed in the chart
-              </div>
-            </label>
-          </div>
+          {/* Chart dataset toggle */}
+          <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
+            <input
+              type="checkbox" checked={showLmbChart()}
+              onChange={(e) => setShowLmbChart(e.target.checked)}
+              className="w-4 h-4 accent-primary cursor-pointer"
+            />
+            <span className="font-medium whitespace-nowrap">Chart: Strafe+LMB</span>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
+              Show only strafes where LMB was pressed in the chart
+            </div>
+          </label>
           <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
             <input
               type="checkbox" checked={showLineChart()}
@@ -646,7 +642,6 @@ function App() {
               Show strafe durations over time instead of frequency distribution
             </div>
           </label>
-
           <button
             onClick={toggleTheme}
             className="px-4 py-1 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
