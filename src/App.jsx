@@ -112,7 +112,7 @@ function StatsTable(props) {
         <StatRow label="Average"        alls={props.alls.average}        early={props.early.average}        perfect={props.perfect.average}        late={props.late.average} />
         <StatRow label="Min"            alls={props.alls.min}            early={props.early.min}            perfect={props.perfect.min}            late={props.late.min} />
         <StatRow label="Max"            alls={props.alls.max}            early={props.early.max}            perfect={props.perfect.max}            late={props.late.max} />
-        <StatRow label="Std. Deviation"      alls={props.alls.std_deviation}  early={props.early.std_deviation}  perfect={props.perfect.std_deviation}   late={props.late.std_deviation} />
+        <StatRow label="Std. Deviation" alls={props.alls.std_deviation}  early={props.early.std_deviation}  perfect={props.perfect.std_deviation}   late={props.late.std_deviation} />
 
         <tr>
           <th className="px-4">All Strafes</th>
@@ -192,19 +192,23 @@ const MyChart = (props) => {
   return <Bar data={chartData()} options={chartOptions()} />;
 };
 
-// ── Scatter / line chart ─────────────────────────────────────────────────────
+// ── Scatter / timeline chart ─────────────────────────────────────────────────
 const MyLineChart = (props) => {
-  // props.strafes: array of strafe objects (filtered, newest-first)
-  // props.sessionStartTime: epoch ms signal value
-  // props.isDark: bool
-
   const [chartData, setChartData] = createSignal({ datasets: [] });
 
   onMount(() => Chart.register(...registerables));
 
+  // True when the furthest strafe is more than 3 minutes into the session
+  const useMinutes = createMemo(() => {
+    if (!props.strafes.length) return false;
+    const maxElapsedS = Math.max(
+      ...props.strafes.map(s => (s.timestamp - props.sessionStartTime) / 1000)
+    );
+    return maxElapsedS > 180;
+  });
+
   createEffect(() => {
     const base     = props.sessionStartTime;
-    // Reverse so oldest strafe is leftmost on the x-axis
     const reversed = [...props.strafes].reverse();
 
     const makeDataset = (type, color) => ({
@@ -212,12 +216,12 @@ const MyLineChart = (props) => {
       data: reversed
         .filter(s => s.type === type)
         .map(s => ({
-          x: (s.timestamp - base) / 1000,  // seconds elapsed
-          y: s.duration,                    // already signed
+          x: (s.timestamp - base) / 1000,  // always seconds internally
+          y: s.duration,
         })),
       backgroundColor: color,
-      pointRadius: 4,
-      pointHoverRadius: 6,
+      pointRadius: 2,
+      pointHoverRadius: 4,
       showLine: false,
     });
 
@@ -234,25 +238,31 @@ const MyLineChart = (props) => {
     const textColor = props.isDark ? '#e8ead4' : '#25291e';
     const gridColor = props.isDark ? 'rgba(232,234,212,0.12)' : 'rgba(37,41,30,0.12)';
     const zeroColor = props.isDark ? 'rgba(232,234,212,0.35)' : 'rgba(37,41,30,0.35)';
+    const mins = useMinutes();
     return {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
         x: {
           type: 'linear',
-          //title: { display: true, text: 'Time (s)', color: textColor, font: { size: 11 } },
-          ticks: { color: textColor, font: { size: 11 } },
-          grid:  { color: gridColor },
+          ticks: {
+            color: textColor,
+            font: { size: 11 },
+            // Display in minutes when elapsed > 3 min, otherwise seconds
+            callback: (v) => mins
+              ? `${(v / 60).toFixed(1)}m`
+              : `${v}s`,
+          },
+          grid: { color: gridColor },
         },
         y: {
-          //title: { display: true, text: 'ms', color: textColor, font: { size: 11 } },
           ticks: {
             color: textColor,
             font: { size: 11 },
             callback: (v) => v > 0 ? `+${v}` : `${v}`,
           },
           grid: {
-            color: (ctx) => ctx.tick.value === 0 ? zeroColor : gridColor,
+            color:     (ctx) => ctx.tick.value === 0 ? zeroColor : gridColor,
             lineWidth: (ctx) => ctx.tick.value === 0 ? 2 : 1,
           },
         },
@@ -314,13 +324,13 @@ function WASD(props) {
 
 // ── App ──────────────────────────────────────────────────────────────────────
 function App() {
-  const [allStrafes,      setAllStrafes]      = createSignal([]);
-  const [showLmbChart,    setShowLmbChart]    = createSignal(false);
-  const [showLineChart,   setShowLineChart]   = createSignal(false);
-  const [sessionStartTime, setSessionStartTime] = createSignal(Date.now());
-  const [isDark,           setIsDark]          = createSignal(false);
-  const [soundEnabled,    setSoundEnabled]    = createSignal({ Early: true, Perfect: true, Late: true });
-  const [volume,          setVolume]          = createSignal(0.6);
+  const [allStrafes,        setAllStrafes]        = createSignal([]);
+  const [showLmbChart,      setShowLmbChart]      = createSignal(false);
+  const [showLineChart,     setShowLineChart]     = createSignal(false);
+  const [sessionStartTime,  setSessionStartTime]  = createSignal(Date.now());
+  const [isDark,            setIsDark]            = createSignal(false);
+  const [soundEnabled,      setSoundEnabled]      = createSignal({ Early: true, Perfect: true, Late: true });
+  const [volume,            setVolume]            = createSignal(0.6);
   const [showVolumeTooltip, setShowVolumeTooltip] = createSignal(false);
   let volumeTooltipTimeout;
 
@@ -356,9 +366,7 @@ function App() {
     if (savedShowLineChart !== null) setShowLineChart(savedShowLineChart === 'true');
 
     const savedSound = localStorage.getItem('soundEnabled');
-    if (savedSound) {
-      try { setSoundEnabled(JSON.parse(savedSound)); } catch(e) {}
-    }
+    if (savedSound) { try { setSoundEnabled(JSON.parse(savedSound)); } catch(e) {} }
 
     const saved = localStorage.getItem('theme');
     if (saved) setIsDark(saved === 'dark');
@@ -385,7 +393,6 @@ function App() {
     const osc  = audioContext.createOscillator();
     const gain = audioContext.createGain();
     const now  = audioContext.currentTime;
-
     if (type === "Perfect") {
       osc.type = "sine";
       osc.frequency.setValueAtTime(880, now);
@@ -437,27 +444,20 @@ function App() {
       unlistenAR = await listen('a-released', () => {
         aReleaseDuration = Date.now() - aPressTime;
         aIsHeld = false;
-
         if (pendingFirstKeyStrafe?.firstKey === "A") {
-          const id  = pendingFirstKeyStrafe.id;
-          const dur = aReleaseDuration;
+          const id = pendingFirstKeyStrafe.id; const dur = aReleaseDuration;
           setAllStrafes(prev => {
             const idx = prev.findIndex(s => s.id === id);
             if (idx === -1) return prev;
-            const copy = [...prev];
-            copy[idx] = { ...copy[idx], firstKeyDurationMs: dur };
-            return copy;
+            const copy = [...prev]; copy[idx] = { ...copy[idx], firstKeyDurationMs: dur }; return copy;
           });
           pendingFirstKeyStrafe = null;
         }
-
         const dur = aReleaseDuration;
         setAllStrafes(prev => {
           const idx = prev.findIndex(s => s.secondKeyDurationMs === null && s.firstKey === "D");
           if (idx === -1) { pendingSecondKeyDuration = { key: "A", duration: dur }; return prev; }
-          const copy = [...prev];
-          copy[idx] = { ...copy[idx], secondKeyDurationMs: dur };
-          return copy;
+          const copy = [...prev]; copy[idx] = { ...copy[idx], secondKeyDurationMs: dur }; return copy;
         });
       });
 
@@ -466,27 +466,20 @@ function App() {
       unlistenDR = await listen('d-released', () => {
         dReleaseDuration = Date.now() - dPressTime;
         dIsHeld = false;
-
         if (pendingFirstKeyStrafe?.firstKey === "D") {
-          const id  = pendingFirstKeyStrafe.id;
-          const dur = dReleaseDuration;
+          const id = pendingFirstKeyStrafe.id; const dur = dReleaseDuration;
           setAllStrafes(prev => {
             const idx = prev.findIndex(s => s.id === id);
             if (idx === -1) return prev;
-            const copy = [...prev];
-            copy[idx] = { ...copy[idx], firstKeyDurationMs: dur };
-            return copy;
+            const copy = [...prev]; copy[idx] = { ...copy[idx], firstKeyDurationMs: dur }; return copy;
           });
           pendingFirstKeyStrafe = null;
         }
-
         const dur = dReleaseDuration;
         setAllStrafes(prev => {
           const idx = prev.findIndex(s => s.secondKeyDurationMs === null && s.firstKey === "A");
           if (idx === -1) { pendingSecondKeyDuration = { key: "D", duration: dur }; return prev; }
-          const copy = [...prev];
-          copy[idx] = { ...copy[idx], secondKeyDurationMs: dur };
-          return copy;
+          const copy = [...prev]; copy[idx] = { ...copy[idx], secondKeyDurationMs: dur }; return copy;
         });
       });
     };
@@ -501,12 +494,11 @@ function App() {
       unlisten = await listen('strafe', (event) => {
         const { strafe_type: type, duration, lmb_pressed, first_key } = event.payload;
         const finalDuration = type === "Early" ? -duration : duration;
-
         const fk = first_key || "A";
         const sk = fk === "A" ? "D" : "A";
 
-        let firstKeyDurationMs    = null;
-        let needsPendingFirstKey  = false;
+        let firstKeyDurationMs   = null;
+        let needsPendingFirstKey = false;
         if (fk === "A") {
           if (!aIsHeld) { firstKeyDurationMs = aReleaseDuration; } else { needsPendingFirstKey = true; }
         } else {
@@ -521,19 +513,13 @@ function App() {
 
         const id = ++strafeIdCounter;
         const strafeObj = {
-          type,
-          duration: finalDuration,
-          lmb_pressed,
-          firstKey: fk,
-          firstKeyDurationMs,
-          secondKeyDurationMs,
-          id,
-          timestamp: Date.now(),
+          type, duration: finalDuration, lmb_pressed,
+          firstKey: fk, firstKeyDurationMs, secondKeyDurationMs,
+          id, timestamp: Date.now(),
         };
 
         setAllStrafes(prev => [strafeObj, ...prev]);
         if (needsPendingFirstKey) pendingFirstKeyStrafe = { id, firstKey: fk };
-
         playBeep(type);
       });
     };
@@ -548,10 +534,8 @@ function App() {
     const perfectDurations = allStrafes().filter(s => s.type === "Perfect").map(s => s.duration);
     const lateDurations    = allStrafes().filter(s => s.type === "Late").map(s => s.duration);
     return {
-      alls:    getStats(allDurations),
-      early:   getStats(earlyDurations),
-      perfect: getStats(perfectDurations),
-      late:    getStats(lateDurations)
+      alls: getStats(allDurations), early: getStats(earlyDurations),
+      perfect: getStats(perfectDurations), late: getStats(lateDurations)
     };
   });
 
@@ -562,12 +546,10 @@ function App() {
     return { samples: earlyLMB + perfectLMB + lateLMB, early: earlyLMB, perfect: perfectLMB, late: lateLMB };
   });
 
-  // Filtered strafe objects for the chart panel (respects showLmbChart toggle)
   const chartStrafeObjects = createMemo(() =>
     showLmbChart() ? allStrafes().filter(s => s.lmb_pressed) : allStrafes()
   );
 
-  // Duration arrays for the bar chart (derived from chartStrafeObjects)
   const chartStrafes = createMemo(() => ({
     early:   chartStrafeObjects().filter(s => s.type === "Early").map(s => s.duration),
     perfect: chartStrafeObjects().filter(s => s.type === "Perfect").map(s => s.duration),
@@ -582,6 +564,8 @@ function App() {
     <div class="w-screen h-screen bg-bright dark:bg-dark text-dark dark:text-bright flex flex-col">
       {/* Header */}
       <div className="flex justify-between items-start px-6 py-3 select-none">
+
+        {/* Left: Title */}
         <div className="flex items-center">
           <h1 className="mr-3 drop-shadow-lg py-2 text-4xl pointer-events-none font-bold text-center text-dark dark:text-bright text-stroke italic">
             PatrikZero's
@@ -591,10 +575,9 @@ function App() {
           </h1>
         </div>
 
-        {/* Center: Controls */}
-        <div className="flex flex-col items-center gap-3 flex-1 max-w-md">
-          <div className="flex items-center gap-6 justify-center">
-
+        {/* Center: Vol + Chart:LMB (top row), Sound (bottom row) — items-start so both rows share the same left edge */}
+        <div className="flex flex-col items-start gap-3 flex-1 px-8">
+          <div className="flex items-center gap-6">
             {/* Volume slider */}
             <div className="flex items-center gap-2 text-xs">
               <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Vol:</span>
@@ -629,23 +612,9 @@ function App() {
                 Show only strafes where LMB was pressed in the chart
               </div>
             </label>
-
-            {/* Chart type toggle */}
-            <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
-              <input
-                type="checkbox" checked={showLineChart()}
-                onChange={(e) => setShowLineChart(e.target.checked)}
-                className="w-4 h-4 accent-primary cursor-pointer"
-              />
-              <span className="font-medium whitespace-nowrap">Chart: Timeline</span>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
-                Show strafe durations over time instead of frequency distribution
-              </div>
-            </label>
-
           </div>
 
-          {/* Sound checkboxes */}
+          {/* Sound checkboxes — left edge aligns with Vol: label */}
           <div className="flex gap-4 text-xs items-center">
             <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Sound:</span>
             {Object.keys(soundEnabled()).map((t) => (
@@ -665,12 +634,27 @@ function App() {
           </div>
         </div>
 
-        <button
-          onClick={toggleTheme}
-          className="self-end px-4 py-1 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
-        >
-          {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
-        </button>
+        {/* Right: Chart:Timeline (top) + Bright Mode button (bottom) — both right-aligned */}
+        <div className="flex flex-col items-end gap-2">
+          <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
+            <input
+              type="checkbox" checked={showLineChart()}
+              onChange={(e) => setShowLineChart(e.target.checked)}
+              className="w-4 h-4 accent-primary cursor-pointer"
+            />
+            <span className="font-medium whitespace-nowrap">Chart: Timeline</span>
+            <div className="absolute top-full right-0 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
+              Show strafe durations over time instead of frequency distribution
+            </div>
+          </label>
+
+          <button
+            onClick={toggleTheme}
+            className="px-4 py-1 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
+          >
+            {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
+          </button>
+        </div>
       </div>
 
       {/* Main Content */}
