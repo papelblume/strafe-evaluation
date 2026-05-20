@@ -6,7 +6,6 @@ import { listen } from '@tauri-apps/api/event';
 
 function draw_time(time) {
   if (time < 0) return "-" + Math.abs(time).toFixed(0) + " ms";
-  if (time > 0) return "+" + time.toFixed(0) + " ms";
   return time.toFixed(0) + " ms";
 }
 
@@ -220,8 +219,8 @@ const MyLineChart = (props) => {
           y: s.duration,
         })),
       backgroundColor: color,
-      pointRadius: 2,
-      pointHoverRadius: 4,
+      pointRadius: 3,
+      pointHoverRadius: 5,
       showLine: false,
     });
 
@@ -571,7 +570,7 @@ function App() {
             CS2
           </h1>
           <h1 className="py-2 text-4xl font-bold text-center pointer-events-none">
-            Strafe Evaluation
+            Strafe Trainer
           </h1>
         </div>
 
