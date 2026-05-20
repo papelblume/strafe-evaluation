@@ -581,7 +581,7 @@ function App() {
             {/* Volume slider */}
             <div className="flex items-end gap-2 text-xs">
               <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Volume:</span>
-              <div className="relative flex items-center">
+              <div className="relative flex items-end">
                 <input
                   type="range" min="0" max="1" step="0.01" value={volume()}
                   onInput={(e) => {
