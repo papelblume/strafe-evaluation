@@ -579,8 +579,8 @@ function App() {
         <div className="flex flex-col items-start gap-3 flex-1 px-8">
           <div className="flex items-center gap-2">
             {/* Volume slider */}
-            <div className="flex items-center gap-2 text-xs">
-              <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">      Volume:</span>
+            <div className="flex items-end gap-2 text-xs">
+              <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Volume:</span>
               <div className="relative flex items-center">
                 <input
                   type="range" min="0" max="1" step="0.01" value={volume()}
