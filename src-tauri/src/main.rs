@@ -20,7 +20,7 @@ const PERFECT_MAX_MS: u128 = 80;
 const LATE_MAX_MS: u128 = 200;
 const SPAM_COOLDOWN_MS: u128 = 60;
 const POST_STRAFE_LMB_WINDOW_MS: u128 = 100;
-const MIN_FIRST_KEY_MS: u128 = 200;
+const MIN_FIRST_KEY_MS: u128 = 80;
 
 fn main() {
     tauri::Builder::default()
