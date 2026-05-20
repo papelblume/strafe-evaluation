@@ -577,10 +577,10 @@ function App() {
 
         {/* Center: Vol + Chart:LMB (top row), Sound (bottom row) — items-start so both rows share the same left edge */}
         <div className="flex flex-col items-start gap-3 flex-1 px-8">
-          <div className="flex items-center gap-4">   {/* Reduced from gap-6 */}
+          <div className="flex items-center gap-6">
             {/* Volume slider */}
-            <div className="flex items-center gap-2 text-xs flex-shrink-0">
-              <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Volume:</span>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Vol:</span>
               <div className="relative flex items-center">
                 <input
                   type="range" min="0" max="1" step="0.01" value={volume()}
@@ -590,7 +590,7 @@ function App() {
                     setShowVolumeTooltip(true);
                     volumeTooltipTimeout = setTimeout(() => setShowVolumeTooltip(false), 1200);
                   }}
-                  className="w-40 accent-primary"
+                  className="w-28 accent-primary"
                 />
                 {showVolumeTooltip() && (
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-50">
@@ -599,19 +599,6 @@ function App() {
                 )}
               </div>
             </div>
-
-            {/* Chart dataset toggle */}
-            <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
-              <input
-                type="checkbox" checked={showLmbChart()}
-                onChange={(e) => setShowLmbChart(e.target.checked)}
-                className="w-4 h-4 accent-primary cursor-pointer"
-              />
-              <span className="font-medium whitespace-nowrap">Chart: Strafe+LMB</span>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
-                Show only strafes where LMB was pressed in the chart
-              </div>
-            </label>
           </div>
 
           {/* Sound checkboxes — left edge aligns with Vol: label */}
@@ -634,19 +621,33 @@ function App() {
           </div>
         </div>
 
-        {/* Right: Chart:Timeline (top) + Bright Mode button (bottom) — both right-aligned */}
+        {/* Right: Chart toggles (top row) + Bright Mode button (bottom) — both right-aligned */}
         <div className="flex flex-col items-end gap-2">
-          <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
-            <input
-              type="checkbox" checked={showLineChart()}
-              onChange={(e) => setShowLineChart(e.target.checked)}
-              className="w-4 h-4 accent-primary cursor-pointer"
-            />
-            <span className="font-medium whitespace-nowrap">Chart: Timeline</span>
-            <div className="absolute top-full right-0 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
-              Show strafe durations over time instead of frequency distribution
-            </div>
-          </label>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
+              <input
+                type="checkbox" checked={showLmbChart()}
+                onChange={(e) => setShowLmbChart(e.target.checked)}
+                className="w-4 h-4 accent-primary cursor-pointer"
+              />
+              <span className="font-medium whitespace-nowrap">Chart: Strafe+LMB</span>
+              <div className="absolute top-full right-0 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
+                Show only strafes where LMB was pressed in the chart
+              </div>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
+              <input
+                type="checkbox" checked={showLineChart()}
+                onChange={(e) => setShowLineChart(e.target.checked)}
+                className="w-4 h-4 accent-primary cursor-pointer"
+              />
+              <span className="font-medium whitespace-nowrap">Chart: Timeline</span>
+              <div className="absolute top-full right-0 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
+                Show strafe durations over time instead of frequency distribution
+              </div>
+            </label>
+          </div>
 
           <button
             onClick={toggleTheme}
