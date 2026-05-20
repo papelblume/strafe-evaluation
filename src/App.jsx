@@ -577,7 +577,7 @@ function App() {
 
         {/* Center: Vol + Chart:LMB (top row), Sound (bottom row) — items-start so both rows share the same left edge */}
         <div className="flex flex-col items-start gap-3 flex-1 px-8">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             {/* Volume slider */}
             <div className="flex items-center gap-2 text-xs flex-shrink-0">
               <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Volume:</span>
@@ -590,7 +590,7 @@ function App() {
                     setShowVolumeTooltip(true);
                     volumeTooltipTimeout = setTimeout(() => setShowVolumeTooltip(false), 1200);
                   }}
-                  className="w-40 accent-primary"
+                  className="w-34 accent-primary"
                 />
                 {showVolumeTooltip() && (
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-50">
