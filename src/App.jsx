@@ -618,30 +618,36 @@ function App() {
           </div>
         </div>
         {/* Right: Chart:Timeline (top) + Bright Mode button (bottom) — both right-aligned */}
+        {/* Right: Chart toggles (same row) + Bright Mode button */}
         <div className="flex flex-col items-end gap-2">
-          {/* Chart dataset toggle */}
-          <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
-            <input
-              type="checkbox" checked={showLmbChart()}
-              onChange={(e) => setShowLmbChart(e.target.checked)}
-              className="w-4 h-4 accent-primary cursor-pointer"
-            />
-            <span className="font-medium whitespace-nowrap">Chart: Strafe+LMB</span>
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
-              Show only strafes where LMB was pressed in the chart
-            </div>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
-            <input
-              type="checkbox" checked={showLineChart()}
-              onChange={(e) => setShowLineChart(e.target.checked)}
-              className="w-4 h-4 accent-primary cursor-pointer"
-            />
-            <span className="font-medium whitespace-nowrap">Chart: Timeline</span>
-            <div className="absolute top-full right-0 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
-              Show strafe durations over time instead of frequency distribution
-            </div>
-          </label>
+          <div className="flex items-center gap-6"> {/* ← new wrapper for same-row layout */}
+            {/* Chart: Strafe+LMB */}
+            <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
+              <input
+                type="checkbox" checked={showLmbChart()}
+                onChange={(e) => setShowLmbChart(e.target.checked)}
+                className="w-4 h-4 accent-primary cursor-pointer"
+              />
+              <span className="font-medium whitespace-nowrap">Chart: Strafe+LMB</span>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
+                Show only strafes where LMB was pressed in the chart
+              </div>
+            </label>
+
+            {/* Chart: Timeline */}
+            <label className="flex items-center gap-2 cursor-pointer select-none text-xs group relative">
+              <input
+                type="checkbox" checked={showLineChart()}
+                onChange={(e) => setShowLineChart(e.target.checked)}
+                className="w-4 h-4 accent-primary cursor-pointer"
+              />
+              <span className="font-medium whitespace-nowrap">Chart: Timeline</span>
+              <div className="absolute top-full right-0 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
+                Show strafe durations over time instead of frequency distribution
+              </div>
+            </label>
+          </div>
+
           <button
             onClick={toggleTheme}
             className="px-4 py-1 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
@@ -649,7 +655,6 @@ function App() {
             {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
           </button>
         </div>
-      </div>
 
       {/* Main Content */}
       <div className="flex flex-col flex-grow p-3 gap-4 overflow-hidden">
