@@ -103,16 +103,16 @@ function StatsTable(props) {
       <tbody className="text-center">
         <tr>
           <th className="px-4"></th>
-          <th className="w-20 px-3">All</th>
-          <th className="w-20 px-3 text-[#f16a5c]">Early</th>
-          <th className="w-20 px-3 text-[#34d27a]">Perfect</th>
-          <th className="w-20 px-3 text-[#f7b46f]">Late</th>
+          <th className="w-auto px-3">All</th>
+          <th className="w-auto px-3 text-[#f16a5c]">Early</th>
+          <th className="w-auto px-3 text-[#34d27a]">Perfect</th>
+          <th className="w-auto px-3 text-[#f7b46f]">Late</th>
         </tr>
         <StatRow label="Median"         alls={props.alls.median}         early={props.early.median}         perfect={props.perfect.median}         late={props.late.median} />
         <StatRow label="Average"        alls={props.alls.average}        early={props.early.average}        perfect={props.perfect.average}        late={props.late.average} />
         <StatRow label="Min"            alls={props.alls.min}            early={props.early.min}            perfect={props.perfect.min}            late={props.late.min} />
         <StatRow label="Max"            alls={props.alls.max}            early={props.early.max}            perfect={props.perfect.max}            late={props.late.max} />
-        <StatRow label="Std. Dev."      alls={props.alls.std_deviation}  early={props.early.std_deviation}  perfect={props.perfect.std_deviation}   late={props.late.std_deviation} />
+        <StatRow label="Std. Deviation"      alls={props.alls.std_deviation}  early={props.early.std_deviation}  perfect={props.perfect.std_deviation}   late={props.late.std_deviation} />
 
         <tr>
           <th className="px-4">All Strafes</th>
@@ -240,12 +240,12 @@ const MyLineChart = (props) => {
       scales: {
         x: {
           type: 'linear',
-          title: { display: true, text: 'Time (s)', color: textColor, font: { size: 11 } },
+          //title: { display: true, text: 'Time (s)', color: textColor, font: { size: 11 } },
           ticks: { color: textColor, font: { size: 11 } },
           grid:  { color: gridColor },
         },
         y: {
-          title: { display: true, text: 'ms', color: textColor, font: { size: 11 } },
+          //title: { display: true, text: 'ms', color: textColor, font: { size: 11 } },
           ticks: {
             color: textColor,
             font: { size: 11 },
