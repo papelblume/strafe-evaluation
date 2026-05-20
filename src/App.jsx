@@ -614,7 +614,8 @@ function App() {
                   className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
                   onClick={() => playBeep(t)}
                 >
-                  {t} 🔊
+                  <span>{t}</span>
+                  <span>🔊</span>
                 </span>
               </label>
             ))}
