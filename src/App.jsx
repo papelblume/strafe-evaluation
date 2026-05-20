@@ -576,7 +576,8 @@ function App() {
         </div>
 
         {/* Center: Vol + Chart:LMB (top row), Sound (bottom row) — items-start so both rows share the same left edge */}
-        <div className="flex flex-col items-center gap-3 flex-1 pl-32 pr-8">
+        <div className="flex flex-col items-center gap-3 flex-1 px-8">
+          <div className="flex flex-col items-start gap-3">
           <div className="flex items-center gap-6">
             {/* Volume slider */}
             <div className="flex items-center gap-2 text-xs">
@@ -619,6 +620,7 @@ function App() {
                 </span>
               </label>
             ))}
+          </div>
           </div>
         </div>
 
