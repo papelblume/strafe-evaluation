@@ -56,7 +56,10 @@ function fmtStrafeDuration(ms, type) {
 
 function StrafePill(props) {
   return (
-    <div className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[76px] px-2 py-1 gap-0.5">
+    <div
+      className="flex-shrink-0 shadow-md select-none flex flex-col border border-dark/30 dark:border-bright/30 border-t bg-secondary/45 dark:bg-secondary/40 rounded-md justify-center items-center min-w-[76px] px-2 py-1 gap-0.5 cursor-context-menu"
+      onContextMenu={(e) => { e.preventDefault(); props.onDelete(props.id); }}
+    >
       <p className="font-bold text-center text-sm" style={{ color: props.color }}>{props.type}</p>
       <p className="text-center text-sm">{fmtStrafeDuration(props.duration, props.type)}</p>
       <div class="w-full">
@@ -194,8 +197,28 @@ const MyChart = (props) => {
 // ── Scatter / timeline chart ─────────────────────────────────────────────────
 const MyLineChart = (props) => {
   const [chartData, setChartData] = createSignal({ datasets: [] });
+  let wrapperRef;
 
-  onMount(() => Chart.register(...registerables));
+  onMount(() => {
+    Chart.register(...registerables);
+
+    // Attach right-click handler directly to the canvas so offsetX/offsetY are canvas-relative
+    const canvas = wrapperRef?.querySelector('canvas');
+    if (!canvas) return;
+    const handleContextMenu = (e) => {
+      e.preventDefault();
+      const chart = Chart.getChart(canvas);
+      if (!chart) return;
+      const elements = chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
+      if (elements.length > 0) {
+        const { datasetIndex, index } = elements[0];
+        const point = chart.data.datasets[datasetIndex].data[index];
+        if (point?.strafeId !== undefined) props.onDelete(point.strafeId);
+      }
+    };
+    canvas.addEventListener('contextmenu', handleContextMenu);
+    onCleanup(() => canvas.removeEventListener('contextmenu', handleContextMenu));
+  });
 
   // True when the furthest strafe is more than 3 minutes into the session
   const useMinutes = createMemo(() => {
@@ -217,6 +240,7 @@ const MyLineChart = (props) => {
         .map(s => ({
           x: (s.timestamp - base) / 1000,  // always seconds internally
           y: s.duration,
+          strafeId: s.id,
         })),
       backgroundColor: color,
       pointRadius: 3,
@@ -247,10 +271,15 @@ const MyLineChart = (props) => {
           ticks: {
             color: textColor,
             font: { size: 11 },
-            // Display in minutes when elapsed > 3 min, otherwise seconds
-            callback: (v) => mins
-              ? `${(v / 60).toFixed(1)}m`
-              : `${v}s`,
+            callback: (v) => {
+              if (mins) {
+                const totalSec = Math.round(v);
+                const m = Math.floor(totalSec / 60);
+                const s = totalSec % 60;
+                return `${m}:${s.toString().padStart(2, '0')}`;
+              }
+              return `${v}s`;
+            },
           },
           grid: { color: gridColor },
         },
@@ -270,7 +299,11 @@ const MyLineChart = (props) => {
     };
   });
 
-  return <Scatter data={chartData()} options={chartOptions()} />;
+  return (
+    <div ref={wrapperRef} style="width:100%; height:100%;">
+      <Scatter data={chartData()} options={chartOptions()} />
+    </div>
+  );
 };
 
 // ── WASD visualiser ──────────────────────────────────────────────────────────
@@ -426,6 +459,10 @@ function App() {
 
   const toggleTheme = () => setIsDark(prev => !prev);
 
+  function deleteStrafe(id) {
+    setAllStrafes(prev => prev.filter(s => s.id !== id));
+  }
+
   function resetStrafes() {
     setAllStrafes([]);
     setSessionStartTime(Date.now());
@@ -556,7 +593,7 @@ function App() {
   }));
 
   const recentStrafes = createMemo(() => allStrafes().slice(0, 100));
-  const perfectCount  = createMemo(() => allStrafes().filter(s => s.type === 'Perfect').length);
+  const perfectCount  = createMemo(() => allStrafes().filter(s => s.type === 'Perfect' && s.lmb_pressed).length);
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
@@ -689,6 +726,7 @@ function App() {
                     isDark={isDark()}
                     strafes={chartStrafeObjects()}
                     sessionStartTime={sessionStartTime()}
+                    onDelete={deleteStrafe}
                   />
                 : <MyChart
                     isDark={isDark()}
@@ -717,6 +755,8 @@ function App() {
                 firstKey={strafe.firstKey}
                 firstKeyDurationMs={strafe.firstKeyDurationMs}
                 secondKeyDurationMs={strafe.secondKeyDurationMs}
+                id={strafe.id}
+                onDelete={deleteStrafe}
               />
             )}
           </For>
