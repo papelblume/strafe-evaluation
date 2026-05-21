@@ -245,7 +245,7 @@ const MyLineChart = (props) => {
       backgroundColor: color,
       pointRadius: 3,
       pointHoverRadius: 5,
-      showLine: false,
+      showLine: true,
     });
 
     setChartData({
