@@ -362,6 +362,7 @@ function App() {
   const [sessionStartTime,  setSessionStartTime]  = createSignal(Date.now());
   const [isDark,            setIsDark]            = createSignal(false);
   const [soundEnabled,      setSoundEnabled]      = createSignal({ Early: true, Perfect: true, Late: true });
+  const [soundLmbOnly,      setSoundLmbOnly]      = createSignal(false);
   const [volume,            setVolume]            = createSignal(0.6);
   const [showVolumeTooltip, setShowVolumeTooltip] = createSignal(false);
   let volumeTooltipTimeout;
@@ -400,6 +401,9 @@ function App() {
     const savedSound = localStorage.getItem('soundEnabled');
     if (savedSound) { try { setSoundEnabled(JSON.parse(savedSound)); } catch(e) {} }
 
+    const savedSoundLmbOnly = localStorage.getItem('soundLmbOnly');
+    if (savedSoundLmbOnly !== null) setSoundLmbOnly(savedSoundLmbOnly === 'true');
+
     const saved = localStorage.getItem('theme');
     if (saved) setIsDark(saved === 'dark');
     else setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -409,6 +413,7 @@ function App() {
   createEffect(() => { localStorage.setItem('showLmbChart',  showLmbChart().toString()); });
   createEffect(() => { localStorage.setItem('showLineChart', showLineChart().toString()); });
   createEffect(() => { localStorage.setItem('soundEnabled',  JSON.stringify(soundEnabled())); });
+  createEffect(() => { localStorage.setItem('soundLmbOnly',  soundLmbOnly().toString()); });
 
   createEffect(() => {
     if (isDark()) {
@@ -461,6 +466,29 @@ function App() {
 
   function deleteStrafe(id) {
     setAllStrafes(prev => prev.filter(s => s.id !== id));
+  }
+
+  function exportCsv() {
+    const base = sessionStartTime();
+    const header = 'timestamp_epoch_ms,timestamp_relative_ms,type,duration_ms,lmb_pressed,first_key,first_key_duration_ms,second_key_duration_ms';
+    const rows = [...allStrafes()].reverse().map(s => [
+      s.timestamp,
+      s.timestamp - base,
+      s.type,
+      s.duration,
+      s.lmb_pressed,
+      s.firstKey,
+      s.firstKeyDurationMs ?? '',
+      s.secondKeyDurationMs ?? '',
+    ].join(','));
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `strafes_${new Date(base).toISOString().replace(/[:.]/g, '-')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function resetStrafes() {
@@ -556,7 +584,7 @@ function App() {
 
         setAllStrafes(prev => [strafeObj, ...prev]);
         if (needsPendingFirstKey) pendingFirstKeyStrafe = { id, firstKey: fk };
-        playBeep(type);
+        if (!soundLmbOnly() || lmb_pressed) playBeep(type);
       });
     };
     setup();
@@ -625,7 +653,7 @@ function App() {
                     setShowVolumeTooltip(true);
                     volumeTooltipTimeout = setTimeout(() => setShowVolumeTooltip(false), 1200);
                   }}
-                  className="w-32 accent-primary"
+                  className="w-28 accent-primary"
                 />
                 {showVolumeTooltip() && (
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-50">
@@ -633,6 +661,18 @@ function App() {
                   </div>
                 )}
               </div>
+
+              <label className="flex items-center gap-1 cursor-pointer select-none text-xs group relative">
+                <input
+                  type="checkbox" checked={soundLmbOnly()}
+                  onChange={(e) => setSoundLmbOnly(e.target.checked)}
+                  className="w-4 h-4 accent-primary cursor-pointer"
+                />
+                <span className="font-medium whitespace-nowrap">Sound: LMB only</span>
+                <div className="absolute top-full left-0 mt-2 hidden group-hover:block bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
+                  Only play sound for strafes where LMB was pressed
+                </div>
+              </label>
 
               <label className="flex items-center gap-1 cursor-pointer select-none text-xs group relative">
               <input
@@ -678,6 +718,12 @@ function App() {
                 </span>
               </label>
             ))}
+            <button
+              onClick={exportCsv}
+              className="px-3 py-1 rounded-xl bg-secondary/60 hover:bg-secondary/80 text-dark dark:text-bright font-medium shadow-md text-xs transition-all active:scale-95 whitespace-nowrap border border-dark/20 dark:border-bright/20"
+            >
+              Export CSV
+            </button>
             <button
             onClick={toggleTheme}
             className="px-4 py-1 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
