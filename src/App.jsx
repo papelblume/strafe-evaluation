@@ -195,6 +195,8 @@ const MyChart = (props) => {
 };
 
 // ── Scatter / timeline chart ─────────────────────────────────────────────────
+const TYPE_COLORS = { Early: "#f16a5c", Perfect: "#34d27a", Late: "#f7b46f" };
+
 const MyLineChart = (props) => {
   const [chartData, setChartData] = createSignal({ datasets: [] });
   let wrapperRef;
@@ -202,7 +204,6 @@ const MyLineChart = (props) => {
   onMount(() => {
     Chart.register(...registerables);
 
-    // Attach right-click handler directly to the canvas so offsetX/offsetY are canvas-relative
     const canvas = wrapperRef?.querySelector('canvas');
     if (!canvas) return;
     const handleContextMenu = (e) => {
@@ -230,30 +231,25 @@ const MyLineChart = (props) => {
   });
 
   createEffect(() => {
-    const base     = props.sessionStartTime;
-    const reversed = [...props.strafes].reverse();
+    const base = props.sessionStartTime;
+    // Sort chronologically so the connecting line flows left-to-right
+    const sorted = [...props.strafes].sort((a, b) => a.timestamp - b.timestamp);
 
-    const makeDataset = (type, color) => ({
-      label: type,
-      data: reversed
-        .filter(s => s.type === type)
-        .map(s => ({
-          x: (s.timestamp - base) / 1000,  // always seconds internally
-          y: s.duration,
-          strafeId: s.id,
-        })),
-      backgroundColor: color,
-      pointRadius: 3,
-      pointHoverRadius: 5,
-      showLine: true,
-    });
+    const points      = sorted.map(s => ({ x: (s.timestamp - base) / 1000, y: s.duration, strafeId: s.id }));
+    const pointColors = sorted.map(s => TYPE_COLORS[s.type] ?? "#888");
 
     setChartData({
-      datasets: [
-        makeDataset("Early",   "#f16a5c"),
-        makeDataset("Perfect", "#34d27a"),
-        makeDataset("Late",    "#f7b46f"),
-      ],
+      datasets: [{
+        label: 'Strafes',
+        data: points,
+        pointBackgroundColor: pointColors,
+        pointBorderColor:     pointColors,
+        borderColor:  'rgba(150,150,150,0.35)',
+        borderWidth:  1,
+        pointRadius:  3,
+        pointHoverRadius: 5,
+        showLine: true,
+      }],
     });
   });
 
@@ -295,13 +291,29 @@ const MyLineChart = (props) => {
           },
         },
       },
-      plugins: { legend: { labels: { color: textColor } } },
+      // Hide the built-in legend — we draw our own below
+      plugins: { legend: { display: false } },
     };
   });
 
+  // Custom HTML legend matching the bar chart's Early / Perfect / Late entries
+  const Legend = () => (
+    <div className="flex items-center justify-end gap-4 pb-1 text-xs select-none">
+      {Object.entries(TYPE_COLORS).map(([type, color]) => (
+        <div className="flex items-center gap-1.5">
+          <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '2px', backgroundColor: color }} />
+          <span style={{ color: props.isDark ? '#e8ead4' : '#25291e' }}>{type}</span>
+        </div>
+      ))}
+    </div>
+  );
+
   return (
-    <div ref={wrapperRef} style="width:100%; height:100%;">
-      <Scatter data={chartData()} options={chartOptions()} />
+    <div ref={wrapperRef} style="width:100%; height:100%; display:flex; flex-direction:column;">
+      <Legend />
+      <div style="flex:1; min-height:0;">
+        <Scatter data={chartData()} options={chartOptions()} />
+      </div>
     </div>
   );
 };
