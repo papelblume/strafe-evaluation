@@ -357,12 +357,12 @@ function WASD(props) {
 // ── App ──────────────────────────────────────────────────────────────────────
 function App() {
   const [allStrafes,        setAllStrafes]        = createSignal([]);
-  const [showLmbChart,      setShowLmbChart]      = createSignal(true);
+  const [showLmbChart,      setShowLmbChart]      = createSignal(false);
   const [showLineChart,     setShowLineChart]     = createSignal(true);
   const [sessionStartTime,  setSessionStartTime]  = createSignal(Date.now());
   const [isDark,            setIsDark]            = createSignal(true);
   const [soundEnabled,      setSoundEnabled]      = createSignal({ Early: true, Perfect: true, Late: true });
-  const [soundLmbOnly,      setSoundLmbOnly]      = createSignal(true);
+  const [soundLmbOnly,      setSoundLmbOnly]      = createSignal(false);
   const [volume,            setVolume]            = createSignal(0.65);
   const [perfectMaxMs,      setPerfectMaxMs]      = createSignal(125);
   const [editingPerfectMax, setEditingPerfectMax] = createSignal(false);
