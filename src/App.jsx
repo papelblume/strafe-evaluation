@@ -656,7 +656,7 @@ function App() {
                     setShowVolumeTooltip(true);
                     volumeTooltipTimeout = setTimeout(() => setShowVolumeTooltip(false), 1200);
                   }}
-                  className="w-28 accent-primary"
+                  className="w-27 accent-primary"
                 />
                 {showVolumeTooltip() && (
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-50">
@@ -729,7 +729,7 @@ function App() {
             </button>
             <button
               onClick={toggleTheme}
-              className="px-4 py-1 rounded-xl bg-secondary/60 hover:bg-secondary/80 text-dark dark:text-bright font-medium shadow-md text-xs transition-all active:scale-95 whitespace-nowrap border border-dark/20 dark:border-bright/20"\
+              className="px-4 py-1 rounded-xl bg-secondary/60 hover:bg-secondary/80 text-dark dark:text-bright font-medium shadow-md text-xs transition-all active:scale-95 whitespace-nowrap border border-dark/20 dark:border-bright/20"
             >
             {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
           </button>
