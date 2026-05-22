@@ -499,6 +499,9 @@ function App() {
     strafeIdCounter = 0;
   }
 
+  let soundLmbOnlyRef = false;
+  createEffect(() => { soundLmbOnlyRef = soundLmbOnly(); });
+
   // Key timing listeners
   createEffect(() => {
     let unlistenAP, unlistenAR, unlistenDP, unlistenDR;
@@ -584,7 +587,7 @@ function App() {
 
         setAllStrafes(prev => [strafeObj, ...prev]);
         if (needsPendingFirstKey) pendingFirstKeyStrafe = { id, firstKey: fk };
-        if (!soundLmbOnly() || lmb_pressed) playBeep(type);
+        if (!soundLmbOnlyRef || lmb_pressed) playBeep(type);
       });
     };
     setup();
@@ -642,7 +645,7 @@ function App() {
         {/* Center: Vol + Chart:LMB (top row), Sound (bottom row) — items-start so both rows share the same left edge */}
           <div className="flex flex-col items-start gap-3">
             {/* Volume slider */}
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-4 text-xs">
               <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Vol:</span>
               <div className="relative flex items-center">
                 <input
@@ -653,7 +656,7 @@ function App() {
                     setShowVolumeTooltip(true);
                     volumeTooltipTimeout = setTimeout(() => setShowVolumeTooltip(false), 1200);
                   }}
-                  className="w-24 accent-primary"
+                  className="w-28 accent-primary"
                 />
                 {showVolumeTooltip() && (
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-50">
@@ -701,7 +704,7 @@ function App() {
           </div>
 
           {/* Sound checkboxes — left edge aligns with Vol: label */}
-          <div className="flex gap-3 text-xs items-center">
+          <div className="flex gap-4 text-xs items-center">
             <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Sound:</span>
             {Object.keys(soundEnabled()).map((t) => (
               <label key={t} className="flex items-center gap-1 cursor-pointer">
@@ -726,7 +729,7 @@ function App() {
             </button>
             <button
             onClick={toggleTheme}
-            className="px-3 py-1 rounded-xl bg-secondary/60 hover:bg-secondary/80 text-dark dark:text-bright font-medium shadow-md text-xs transition-all active:scale-95 whitespace-nowrap border border-dark/20 dark:border-bright/20"
+            className="px-4 py-1 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
           >
             {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
           </button>
