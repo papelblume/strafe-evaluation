@@ -726,7 +726,7 @@ function App() {
             </button>
             <button
             onClick={toggleTheme}
-            className="px-4 py-1 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
+            className="px-3 py-1 rounded-xl bg-secondary/60 hover:bg-secondary/80 text-dark dark:text-bright font-medium shadow-md text-xs transition-all active:scale-95 whitespace-nowrap border border-dark/20 dark:border-bright/20"
           >
             {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
           </button>
