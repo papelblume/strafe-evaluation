@@ -357,13 +357,16 @@ function WASD(props) {
 // ── App ──────────────────────────────────────────────────────────────────────
 function App() {
   const [allStrafes,        setAllStrafes]        = createSignal([]);
-  const [showLmbChart,      setShowLmbChart]      = createSignal(false);
-  const [showLineChart,     setShowLineChart]     = createSignal(false);
+  const [showLmbChart,      setShowLmbChart]      = createSignal(true);
+  const [showLineChart,     setShowLineChart]     = createSignal(true);
   const [sessionStartTime,  setSessionStartTime]  = createSignal(Date.now());
-  const [isDark,            setIsDark]            = createSignal(false);
+  const [isDark,            setIsDark]            = createSignal(true);
   const [soundEnabled,      setSoundEnabled]      = createSignal({ Early: true, Perfect: true, Late: true });
-  const [soundLmbOnly,      setSoundLmbOnly]      = createSignal(false);
-  const [volume,            setVolume]            = createSignal(0.6);
+  const [soundLmbOnly,      setSoundLmbOnly]      = createSignal(true);
+  const [volume,            setVolume]            = createSignal(0.65);
+  const [perfectMaxMs,      setPerfectMaxMs]      = createSignal(125);
+  const [editingPerfectMax, setEditingPerfectMax] = createSignal(false);
+  let perfectMaxInputRef;
   const [showVolumeTooltip, setShowVolumeTooltip] = createSignal(false);
   let volumeTooltipTimeout;
 
@@ -401,6 +404,9 @@ function App() {
     const savedSound = localStorage.getItem('soundEnabled');
     if (savedSound) { try { setSoundEnabled(JSON.parse(savedSound)); } catch(e) {} }
 
+    const savedPerfectMaxMs = localStorage.getItem('perfectMaxMs');
+    if (savedPerfectMaxMs !== null) setPerfectMaxMs(parseInt(savedPerfectMaxMs, 10));
+
     const savedSoundLmbOnly = localStorage.getItem('soundLmbOnly');
     if (savedSoundLmbOnly !== null) setSoundLmbOnly(savedSoundLmbOnly === 'true');
 
@@ -414,6 +420,7 @@ function App() {
   createEffect(() => { localStorage.setItem('showLineChart', showLineChart().toString()); });
   createEffect(() => { localStorage.setItem('soundEnabled',  JSON.stringify(soundEnabled())); });
   createEffect(() => { localStorage.setItem('soundLmbOnly',  soundLmbOnly().toString()); });
+  createEffect(() => { localStorage.setItem('perfectMaxMs',  perfectMaxMs().toString()); });
 
   createEffect(() => {
     if (isDark()) {
@@ -580,7 +587,7 @@ function App() {
 
         const id = ++strafeIdCounter;
         const strafeObj = {
-          type, duration: finalDuration, lmb_pressed,
+          type, rawType: type, duration: finalDuration, lmb_pressed,
           firstKey: fk, firstKeyDurationMs, secondKeyDurationMs,
           id, timestamp: Date.now(),
         };
@@ -595,11 +602,23 @@ function App() {
   });
 
   // ── Memos ────────────────────────────────────────────────────────────────
+
+  // Re-derive type from rawType based on user-configured perfectMaxMs threshold.
+  // Early is never reclassified. Perfect/Late swap based on |duration| vs threshold.
+  const reclassifiedStrafes = createMemo(() =>
+    allStrafes().map(s => {
+      if (s.rawType === "Early") return s;
+      const absDur = Math.abs(s.duration);
+      const newType = absDur <= perfectMaxMs() ? "Perfect" : "Late";
+      return newType === s.type ? s : { ...s, type: newType };
+    })
+  );
+
   const allStats = createMemo(() => {
-    const allDurations     = allStrafes().map(s => s.duration);
-    const earlyDurations   = allStrafes().filter(s => s.type === "Early").map(s => s.duration);
-    const perfectDurations = allStrafes().filter(s => s.type === "Perfect").map(s => s.duration);
-    const lateDurations    = allStrafes().filter(s => s.type === "Late").map(s => s.duration);
+    const allDurations     = reclassifiedStrafes().map(s => s.duration);
+    const earlyDurations   = reclassifiedStrafes().filter(s => s.type === "Early").map(s => s.duration);
+    const perfectDurations = reclassifiedStrafes().filter(s => s.type === "Perfect").map(s => s.duration);
+    const lateDurations    = reclassifiedStrafes().filter(s => s.type === "Late").map(s => s.duration);
     return {
       alls: getStats(allDurations), early: getStats(earlyDurations),
       perfect: getStats(perfectDurations), late: getStats(lateDurations)
@@ -607,14 +626,14 @@ function App() {
   });
 
   const lmbFired = createMemo(() => {
-    const earlyLMB   = allStrafes().filter(s => s.type === "Early"   && s.lmb_pressed).length;
-    const perfectLMB = allStrafes().filter(s => s.type === "Perfect" && s.lmb_pressed).length;
-    const lateLMB    = allStrafes().filter(s => s.type === "Late"    && s.lmb_pressed).length;
+    const earlyLMB   = reclassifiedStrafes().filter(s => s.type === "Early"   && s.lmb_pressed).length;
+    const perfectLMB = reclassifiedStrafes().filter(s => s.type === "Perfect" && s.lmb_pressed).length;
+    const lateLMB    = reclassifiedStrafes().filter(s => s.type === "Late"    && s.lmb_pressed).length;
     return { samples: earlyLMB + perfectLMB + lateLMB, early: earlyLMB, perfect: perfectLMB, late: lateLMB };
   });
 
   const chartStrafeObjects = createMemo(() =>
-    showLmbChart() ? allStrafes().filter(s => s.lmb_pressed) : allStrafes()
+    showLmbChart() ? reclassifiedStrafes().filter(s => s.lmb_pressed) : reclassifiedStrafes()
   );
 
   const chartStrafes = createMemo(() => ({
@@ -623,8 +642,8 @@ function App() {
     late:    chartStrafeObjects().filter(s => s.type === "Late").map(s => s.duration),
   }));
 
-  const recentStrafes = createMemo(() => allStrafes().slice(0, 100));
-  const perfectCount  = createMemo(() => allStrafes().filter(s => s.type === 'Perfect' && s.lmb_pressed).length);
+  const recentStrafes = createMemo(() => reclassifiedStrafes().slice(0, 100));
+  const perfectCount  = createMemo(() => reclassifiedStrafes().filter(s => s.type === 'Perfect' && s.lmb_pressed).length);
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
@@ -645,7 +664,7 @@ function App() {
         {/* Center: Vol + Chart:LMB (top row), Sound (bottom row) — items-start so both rows share the same left edge */}
           <div className="flex flex-col items-start gap-3">
             {/* Volume slider */}
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-4 text-xs">
               <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Vol:</span>
               <div className="relative flex items-center">
                 <input
@@ -656,7 +675,7 @@ function App() {
                     setShowVolumeTooltip(true);
                     volumeTooltipTimeout = setTimeout(() => setShowVolumeTooltip(false), 1200);
                   }}
-                  className="w-24 accent-primary"
+                  className="w-28 accent-primary"
                 />
                 {showVolumeTooltip() && (
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 bg-dark dark:bg-bright text-bright dark:text-dark text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-50">
@@ -704,7 +723,7 @@ function App() {
           </div>
 
           {/* Sound checkboxes — left edge aligns with Vol: label */}
-          <div className="flex gap-3 text-xs items-center">
+          <div className="flex gap-4 text-xs items-center">
             <span className="font-medium text-dark/70 dark:text-bright/70 whitespace-nowrap">Sound:</span>
             {Object.keys(soundEnabled()).map((t) => (
               <label key={t} className="flex items-center gap-1 cursor-pointer">
@@ -728,9 +747,9 @@ function App() {
               Export CSV
             </button>
             <button
-              onClick={toggleTheme}
-              className="px-3 py-1 rounded-xl bg-secondary/60 hover:bg-secondary/80 text-dark dark:text-bright font-medium shadow-md text-xs transition-all active:scale-95 whitespace-nowrap border border-dark/20 dark:border-bright/20"
-            >
+            onClick={toggleTheme}
+            className="px-4 py-1 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-md flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
+          >
             {isDark() ? '☀️ Bright Mode' : '🌙 Dark Mode'}
           </button>
           </div>
@@ -747,7 +766,36 @@ function App() {
                           max-h-[420px] text-[#3a3f36] dark:text-[#e8e8e8]">
             <div className="flex justify-between mb-4">
               <h2 className="select-none text-2xl font-bold">Statistics</h2>
-              <button onClick={resetStrafes} className="text-bright select-none shadow-md px-5 py-1 rounded-md bg-primary hover:scale-110 active:scale-95 transition-all">Reset</button>
+              <div className="flex items-center gap-2">
+                {editingPerfectMax() ? (
+                  <input
+                    ref={perfectMaxInputRef}
+                    type="number"
+                    min="1"
+                    max="200"
+                    value={perfectMaxMs()}
+                    className="w-16 px-2 py-1 text-xs rounded-md border border-dark/30 dark:border-bright/30 bg-bright dark:bg-dark text-dark dark:text-bright text-center"
+                    onBlur={(e) => {
+                      const v = parseInt(e.target.value, 10);
+                      if (!isNaN(v) && v > 0 && v <= 200) setPerfectMaxMs(v);
+                      setEditingPerfectMax(false);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') e.target.blur();
+                      if (e.key === 'Escape') setEditingPerfectMax(false);
+                    }}
+                  />
+                ) : (
+                  <button
+                    onClick={() => { setEditingPerfectMax(true); setTimeout(() => perfectMaxInputRef?.focus(), 0); }}
+                    className="text-dark dark:text-bright select-none shadow-md px-3 py-1 rounded-md bg-secondary/50 hover:bg-secondary/70 dark:bg-secondary/30 dark:hover:bg-secondary/50 text-xs transition-all border border-dark/20 dark:border-bright/20 whitespace-nowrap"
+                    title="Set Perfect strafe threshold"
+                  >
+                    ⏱ {perfectMaxMs()}ms
+                  </button>
+                )}
+                <button onClick={resetStrafes} className="text-bright select-none shadow-md px-5 py-1 rounded-md bg-primary hover:scale-110 active:scale-95 transition-all">Reset</button>
+              </div>
             </div>
             <div className="flex-1 overflow-hidden">
               <StatsTable
