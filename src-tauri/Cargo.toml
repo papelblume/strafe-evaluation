@@ -1,9 +1,9 @@
 [package]
-name = "strafe-eval"
-version = "0.1.0"
-description = "A Tauri App"
+name = "strafe-trainer"
+version = "0.2.0"
+description = "CS2 Counter-Strafe Trainer"
 authors = ["you"]
-edition = "2021"
+edition = "2026"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
