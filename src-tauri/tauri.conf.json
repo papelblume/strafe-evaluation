@@ -6,8 +6,8 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "PatrikZeros-Strafe-Evaluation",
-    "version": "1.1.0"
+    "productName": "CS2-Counter-Strafe-Trainer",
+    "version": "1.2.0"
   },
   "tauri": {
     "allowlist": {
@@ -19,7 +19,7 @@
     },
     "windows": [
       {
-        "title": "PatrikZero's Strafe Evaluation",
+        "title": "CS2 Counter-Strafe Trainer",
         "width": 1050,
         "height": 700,
         "resizable": false
@@ -31,7 +31,7 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.strafe-eval.app",
+      "identifier": "com.strafe-trainer.app",
       "icon": [
         "icons/icon.ico"
       ]
